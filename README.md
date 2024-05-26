@@ -2,6 +2,13 @@
 Lachiwa is a CLI tool for generating honeytokens, similar to canarytokens.
 ![image](https://github.com/vicentevieytes/lachiwa/assets/73846744/3d07c198-e80b-40e2-b82f-e287ee5c21f4)
 
+## BUILD
+
+```docker build -t lachiwa:latest .```
+
+## RUN
+```docker run -it -v /path/to/local/output:/usr/src/app/honeytokens lachiwa:latest```
+
 ## Estado actual:
 
 Escribimos las primeras clases del modelo, Token y subclases URLToken y QRToken.
