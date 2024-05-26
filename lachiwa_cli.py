@@ -1,6 +1,8 @@
 import click
+from trogon import tui
 from lachiwa import Token, URLToken, QRToken
 
+@tui()
 @click.command()
 @click.option('--host', prompt='Host', help='The host for the honeytoken.')
 @click.option('--description', prompt='Description', help='Description of the honeytoken.')
