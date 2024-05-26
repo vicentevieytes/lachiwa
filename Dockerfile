@@ -9,5 +9,4 @@ COPY . .
 
 RUN pip install -r requirements.txt
 
-#CMD ["python", "lachiwa_cli.py", "tui"]
-CMD ["/bin/bash","-c", "python lachiwa_cli.py tui"]
+CMD ["python", "lachiwa_cli.py", "tui"]
