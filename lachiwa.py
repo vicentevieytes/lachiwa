@@ -1,11 +1,12 @@
 import click
 import uuid
 from datetime import datetime
+from qrcode.main import QRCode
 import qrcode
 
 def create_qr_code(url, file_name):
     # Create a QR code object
-    qr = qrcode.QRCode(
+    qr = QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
@@ -59,9 +60,8 @@ def create_honeytoken(host, description, email, token_type):
         click.echo(f"Token Details: {token}")
     elif token_type == "qr":
         token = QRToken(host, description, email)
-
-
-
-
+    elif token_type == "exe":
+        token = EXEToken(host, description, email)
+        
 if __name__ == '__main__':
     create_honeytoken()
