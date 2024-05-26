@@ -1,1 +1,4 @@
 click==8.1.7
+pypng==0.20220715.0
+qrcode==7.4.2
+typing_extensions==4.12.0
