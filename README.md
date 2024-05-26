@@ -15,6 +15,7 @@ Escribimos las primeras clases del modelo, Token y subclases URLToken y QRToken.
 Escribimos lo inicial de la CLI, se pueden generar URLs y QRs. 
 Estamos programando en Python pq trate de usar Node y casi me explota una arteria del cerebro.
 Para la base de datos estamos considerando usar redis. Es un key value storage en el que es muy facil leer y escribir.
+Con la libreria trogon ahora la CLI es una TUI, y se puede correr desde docker! 
 
 ## TODO:
 Creo que lo mejor va a ser hacer todo en Python, backend incluido. Así el server y la CLI puede acceder a las mismas abstracciones que leen y escriben en la DB.
