@@ -1,0 +1,11 @@
+services:
+  python:
+    container_name: python
+    image: python:3.12-slim
+    depends_on: [redis]
+    stdin_open: true
+    tty: true
+
+  redis:
+    container_name: redis
+    image: redis:latest
