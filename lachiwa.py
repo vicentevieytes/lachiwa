@@ -25,6 +25,8 @@ class URLToken(Token):
     def __init__(self, host, description, email):
         super().__init__(host, description, email,"URLToken")
         self.url = url_from_host_and_tokenid(self.host, self.id, "http")
+        with open(f"honeytokens/URL_{description}_{datetime.today()}", "w") as output_file:
+            output_file.write(self.url)
 
     def __str__(self):
         return (f"URLToken(host={self.host}, description={self.description}, email={self.email}, "
