@@ -16,7 +16,7 @@ def save_to_redis(token: Token):
             "description": token.description,
             "email": token.email,
             "token_type": token.token_type,
-            "creation_datetime": token.creation_datetime.isoformat(),
+            "timestamp": token.timestamp.isoformat(),
             "id": str(token.id)
         }
         redis_client.hset(token_key, mapping=token_data)
@@ -27,7 +27,7 @@ def save_to_redis(token: Token):
         # Ensure the Redis connection is closed properly
         redis_client.close()
 
-#@tui()
+@tui()
 @click.command()
 @click.option('--host', prompt='Host', help='The host for the honeytoken.', type= str)
 @click.option('--description', prompt='Description', help='Description of the honeytoken.', type= str)

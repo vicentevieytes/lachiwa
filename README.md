@@ -6,8 +6,19 @@ Lachiwa is a CLI tool for generating honeytokens, similar to canarytokens.
 
 ```docker build -t lachiwa:latest .```
 
+Ahora tambien con docker compose se puede levantar un contenedor con redis y otro con lachiwa_cli
+```docker compose up -d```
+
 ## RUN
-```docker run -it -v /path/to/local/output:/usr/src/app/honeytokens lachiwa:latest```
+```docker run -it -v .:/usr/src/app/honeytokens lachiwa:latest```
+
+Si se levantaron los contenedores con docker compose:
+
+```docker start lachiwa_cli```
+```docker attach lachiwa_cli```
+
+Esto hay que mejorarlo, mi idea es q un contenedor con el server y otro con redis se levanten con compose y queden funcionando, mientras que el contenedor con la CLI se levanta cada vez que se quiere usar.
+
 
 ## Estado actual:
 

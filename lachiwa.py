@@ -1,10 +1,10 @@
-import uuid
 from datetime import datetime
 from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
+import nanoid
 
 def url_from_host_and_tokenid(host, id, protocol="http"): 
-    return f"{protocol}://{host}/id?={id}"
+    return f"{protocol}://{host}/?id={id}"
 
 class Token:
     def __init__(self, host: str, description: str, email: str, token_type: str):
@@ -12,12 +12,12 @@ class Token:
         self.description = description
         self.email = email
         self.token_type = token_type
-        self.creation_datetime = datetime.now()
-        self.id = uuid.uuid4()
+        self.timestamp = datetime.now()
+        self.id = nanoid.generate(size=10)
     
     def __str__(self):
         return (f"Token(host={self.host}, description={self.description}, email={self.email}, "
-                f"token_type={self.token_type}, creation_datetime={self.creation_datetime}, id={self.id})")
+                f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id})")
 
     
 
@@ -30,7 +30,7 @@ class URLToken(Token):
 
     def __str__(self):
         return (f"URLToken(host={self.host}, description={self.description}, email={self.email}, "
-                f"token_type={self.token_type}, creation_datetime={self.creation_datetime}, id={self.id}, url={self.url})")
+                f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, url={self.url})")
 
 
 class QRToken(Token):
