@@ -12,12 +12,12 @@ class Token:
         self.description = description
         self.email = email
         self.token_type = token_type
-        self.created_at = datetime.now()
+        self.creation_datetime = datetime.now()
         self.id = uuid.uuid4()
     
     def __str__(self):
         return (f"Token(host={self.host}, description={self.description}, email={self.email}, "
-                f"token_type={self.token_type}, created_at={self.created_at}, id={self.id})")
+                f"token_type={self.token_type}, creation_datetime={self.creation_datetime}, id={self.id})")
 
     
 
@@ -30,7 +30,7 @@ class URLToken(Token):
 
     def __str__(self):
         return (f"URLToken(host={self.host}, description={self.description}, email={self.email}, "
-                f"token_type={self.token_type}, created_at={self.created_at}, id={self.id}, url={self.url})")
+                f"token_type={self.token_type}, creation_datetime={self.creation_datetime}, id={self.id}, url={self.url})")
 
 
 class QRToken(Token):
