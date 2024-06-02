@@ -1,33 +1,7 @@
 import click
 from trogon import tui
-from lachiwa import ExcelToken, Token, URLToken, QRToken
-import redis
-import os
-
-
-def save_to_redis(token: Token):
-    redis_host = os.getenv('REDIS_HOST', 'localhost')
-    redis_port = int(os.getenv('REDIS_PORT', 6379))
-    # Redis connection
-    redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
-    try:
-        token_key = f"Token:{token.id}"
-        token_data = {
-            "host": token.host,
-            "description": token.description,
-            "email": token.email,
-            "token_type": token.token_type,
-            "timestamp": token.timestamp.isoformat(),
-            "id": str(token.id)
-        }
-        redis_client.hset(token_key, mapping=token_data)
-        return True
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        # Ensure the Redis connection is closed properly
-        redis_client.close()
-
+from lachiwa import Token, URLToken, QRToken, ExcelToken
+from redismanager import save_token 
 
 @tui()
 @click.command()
@@ -39,30 +13,21 @@ def create_honeytoken(host: str, description: str, email: str, token_type: str):
     return from_token_type_str(host, description, email, token_type)
 
 
-def from_token_type_str(host: str, description: str, email: str, token_type: str) -> "Token":
-    match token_type:
-        case "url":
-            token = URLToken(host, description, email)
-            save_to_redis(token)
+def from_token_type_str(host: str, description: str, email: str, token_type: str) -> Token:
+    token = Token.from_token_type_str(host, description, email, token_type)
+    save_token(token)
+    match token:
+        case URLToken():
             click.echo(f"Generated URL: {token.url}")
-            click.echo(f"Token Details: {token}")
-            return token
-        case "qr":
-            token = QRToken(host, description, email)
-            save_to_redis(token)
+        case QRToken():
             click.echo(f"Generated QR: {token.filename}")
-            click.echo(f"Token Details: {token}")
-            return token
-        case "excel":
-            token = ExcelToken(host, description, email)
-            save_to_redis(token)
+        case ExcelToken():
             click.echo(f"Generated Excel: {token.filename}")
-            click.echo(f"Token Details: {token}")
-            return token
         case _:
             print("Wrong token type indicated")
             exit(1)
-
+    click.echo(f"Token Details: {token}")
+    return token
 
 if __name__ == '__main__':
     create_honeytoken()
