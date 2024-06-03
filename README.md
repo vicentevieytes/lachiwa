@@ -1,6 +1,7 @@
 # lachiwa
 Lachiwa is a CLI tool for generating honeytokens, similar to canarytokens.
-![image](https://github.com/vicentevieytes/lachiwa/assets/73846744/3d07c198-e80b-40e2-b82f-e287ee5c21f4)
+![image](https://github.com/vicentevieytes/lachiwa/assets/73846744/48ced5f0-e025-4a0e-9482-da2fc104279f)
+
 
 ## BUILD AND RUN
  ```docker compose run --build --rm lachiwa_cli```
