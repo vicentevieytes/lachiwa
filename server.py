@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from datetime import datetime
+import redismanager
+from lachiwa import Token, URLToken, QRToken, ExcelToken
 
 app = Flask(__name__)
 
@@ -9,12 +11,17 @@ token_triggers = {}
 @app.route('/', methods=['GET'])
 def token_triggered():
     token_id = request.args.get('id')
+    #TODO: Solo realizar este paso si el token existe en redis
     if token_id:
         # Log the token trigger event with timestamp
-        token_triggers[token_id] = datetime.now()
+        if token_id in token_triggers:
+            token_triggers[token_id].append(datetime.now())
+        else:
+            token_triggers[token_id] = []
         token_attributes = redismanager.get_token_attributes(token_id)
-
-        #TODO: Get token information from REDIS and generate alert
+        alert = alert_from_token_attributes(token_attributes)
+        alert.send_mail()
+        redismanager.write_alert_to_redis(alert)
         
         return jsonify({"status": "success", "token_id": token_id, "timestamp": token_triggers[token_id]}), 200
     else:
