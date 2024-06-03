@@ -19,7 +19,7 @@ Excluir --build si no hubo cambios en la codebase
 - Tomás está laburando en la branch Excel para armar el **ExcelToken**.
 - Lautaro está laburando en el **informe**.
 - Vicente está laburando con el **backend** y la configuración del **docker-compose**.
-- Germán es un **tipazo**. (y está laburando en un branch interno no pusheado a remote el DockerFileToken)
+- Germán es un **tipazo**. (y está laburando en un branch interno no pusheado a remote el **DockerFileToken**)
 
 ## LOG
 - Escribimos una versión inicila del token Excel
