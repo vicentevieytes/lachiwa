@@ -8,7 +8,6 @@ from openpyxl import Workbook
 def url_from_host_and_tokenid(host, id, protocol="http"):
     return f"{protocol}://{host}/?id={id}"
 
-
 class Token:
     def __init__(self, host: str, description: str, email: str, token_type: str):
         self.host = host
@@ -21,6 +20,22 @@ class Token:
     def __str__(self):
         return (f"Token(host={self.host}, description={self.description}, email={self.email}, "
                 f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id})")
+    
+    @classmethod
+    def from_token_type_str(cls, host: str, description: str, email: str, token_type: str) -> "Token":
+        match token_type:
+            case "url":
+                token = URLToken(host, description, email)
+                return token
+            case "qr":
+                token = QRToken(host, description, email)
+                return token
+            case "ExcelToken":
+                token = ExcelToken(host, description, email)
+                return token
+            case _:
+                print("Wrong token type indicated")
+                exit(1)
 
 
 class URLToken(Token):
