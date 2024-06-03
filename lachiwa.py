@@ -87,8 +87,9 @@ class ExcelToken(Token):
         sheet.title = "Data"
 
         # Canary Token hiden in the excel
+        url = url_from_host_and_tokenid(self.host, self.id)
         hidden_sheet = workbook.create_sheet(title="Hidden")
-        hidden_sheet['A1'] = self.url
+        hidden_sheet['A1'] = url
         workbook.active.sheet_state = 'hidden'
 
         workbook.save(file_name)
