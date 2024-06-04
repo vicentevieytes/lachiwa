@@ -15,7 +15,8 @@ services:
     depends_on:
       - redis
     volumes:
-      - .:/usr/src/app/honeytokens
+      - ./honeytokens:/usr/src/app/honeytokens
+      - ./alerts:/usr/src/app/alerts
     environment:
       - TERM=xterm-256color
       - REDIS_HOST=redis

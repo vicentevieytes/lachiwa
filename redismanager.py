@@ -1,7 +1,14 @@
 import redis
 import os
-from lachiwa import Token
+from datetime import datetime
+from lachiwa import Token, Alert
 from typing import Awaitable, Union, Optional
+def token_key(token_id: str):
+   return(f"Token:{token_id}")
+
+def alert_key(token_id):
+    return(f"Alert:{token_id}")
+
 
 def get_redis_client() -> redis.StrictRedis:
     redis_host = os.getenv('REDIS_HOST', 'localhost')
@@ -11,7 +18,7 @@ def get_redis_client() -> redis.StrictRedis:
 def save_token(token: Token) -> Optional[bool]:
     redis_client = get_redis_client()
     try:
-        token_key = f"Token:{token.id}"
+        key = f"Token:{token.id}"
         token_data = {
             "host": token.host,
             "description": token.description,
@@ -20,7 +27,7 @@ def save_token(token: Token) -> Optional[bool]:
             "timestamp": token.timestamp.isoformat(),
             "id": str(token.id)
         }
-        redis_client.hset(token_key, mapping=token_data)
+        redis_client.hset(key, mapping=token_data)
         return True
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -31,14 +38,32 @@ def save_token(token: Token) -> Optional[bool]:
 
 def get_token_attributes(token_id: str) -> Union[Awaitable[dict], dict, None]:
     redis_client = get_redis_client()
-    token_key = f"Token:{token_id}"
+    key = token_key(token_id)
     try:
-        if not redis_client.exists(token_key):
+        if not redis_client.exists(key):
             print(f"Token ID {token_id} does not exist.")
             return None
-        return redis_client.hgetall(token_key)
+        return redis_client.hgetall(key)
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
     finally:
+        redis_client.close()
+
+def fetch_token(token_id: str) -> Token:
+    token_attributes = get_token_attributes(token_id)
+    return Token.from_dict(token_attributes)
+
+def store_alert(alert: Alert) -> Optional[bool]:
+    redis_client = get_redis_client()
+    timestamp = datetime.utcnow().isoformat()
+    try:
+        key = alert_key(alert.id)
+        redis_client.rpush(key, timestamp) 
+        redis_client.hset("latest_alerts", alert.id, timestamp)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+    finally:
+        # Ensure the Redis connection is closed properly
         redis_client.close()

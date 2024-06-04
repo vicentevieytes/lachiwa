@@ -16,6 +16,7 @@ def create_honeytoken(host: str, description: str, email: str, token_type: str):
 def from_token_type_str(host: str, description: str, email: str, token_type: str) -> Token:
     token = Token.from_token_type_str(host, description, email, token_type)
     save_token(token)
+    token.write_out()
     match token:
         case URLToken():
             click.echo(f"Generated URL: {token.url}")
