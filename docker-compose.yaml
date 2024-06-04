@@ -16,7 +16,6 @@ services:
       - redis
     volumes:
       - ./honeytokens:/usr/src/app/honeytokens
-      - ./alerts:/usr/src/app/alerts
     environment:
       - TERM=xterm-256color
       - REDIS_HOST=redis
@@ -24,6 +23,23 @@ services:
     #    stdin_open: true
     #    tty: true
     command: python lachiwa_cli.py tui
+  
+  lachiwa_sv:
+    build: .
+    image: lachiwa
+    container_name: lachiwa_sv
+    depends_on:
+      - redis
+    volumes:
+      - ./alerts:/usr/src/app/alerts
+    environment:
+      - FLASK_APP=server.py
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "5000:5000"
+    command: flask run --host=0.0.0.0
+
 
 volumes:
   redis-data:

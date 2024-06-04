@@ -32,3 +32,4 @@ def from_token_type_str(host: str, description: str, email: str, token_type: str
 
 if __name__ == '__main__':
     create_honeytoken()
+    

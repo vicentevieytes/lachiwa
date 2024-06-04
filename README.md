@@ -30,3 +30,4 @@ Excluir --build si no hubo cambios en la codebase
 - Estamos programando en Python pq trate de usar Node y casi me explota una arteria del cerebro.
 - Para la base de datos estamos considerando usar redis. Es un key value storage en el que es muy facil leer y escribir.
 - Con la libreria trogon ahora la CLI es una TUI, y se puede correr desde docker!
+

@@ -127,4 +127,3 @@ class ExcelToken(Token):
 
         workbook.save(file_name)
 
-

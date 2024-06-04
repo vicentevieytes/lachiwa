@@ -67,3 +67,4 @@ def store_alert(alert: Alert) -> Optional[bool]:
     finally:
         # Ensure the Redis connection is closed properly
         redis_client.close()
+
