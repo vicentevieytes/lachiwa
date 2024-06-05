@@ -44,10 +44,11 @@ def get_token_attributes(token_id: str) -> Union[Awaitable[dict], dict, None]:
         return None
     return redis_client.hgetall(key)
 
-def fetch_token(token_id: str) -> Token:
+def fetch_token(token_id: str) -> Token|None:
     token_attributes = get_token_attributes(token_id)
-    print(token_attributes)
-    return Token.from_dict(token_attributes)
+    if token_attributes is not None:
+        return Token.from_dict(token_attributes)
+    return None
 
 def store_alert(alert: Alert) -> Optional[bool]:
     redis_client = get_redis_client()

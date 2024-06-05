@@ -11,6 +11,8 @@ def token_triggered():
     if token_id:
         # Log the token trigger event with timestamp
         token = redismanager.fetch_token(token_id)
+        if token is None:
+            return jsonify({"status": "error", "message": f"{token_id} is not a valid token"}, 400)
         alert = Alert(token= token)
         redismanager.store_alert(alert)
         alert.log_alert()
