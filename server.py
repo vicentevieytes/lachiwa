@@ -8,14 +8,12 @@ app = Flask(__name__)
 @app.route('/', methods=['GET'])
 def token_triggered():
     token_id = request.args.get('id')
-    #TODO: Solo realizar este paso si el token existe en redis
     if token_id:
         # Log the token trigger event with timestamp
         token = redismanager.fetch_token(token_id)
         alert = Alert(token= token)
         redismanager.store_alert(alert)
         alert.log_alert()
-
         return jsonify({"status": "success", "token_id": token_id, }), 200
     else:
         return jsonify({"status": "error", "message": "Missing token ID"}), 400

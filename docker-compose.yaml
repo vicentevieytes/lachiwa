@@ -20,10 +20,8 @@ services:
       - TERM=xterm-256color
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    #    stdin_open: true
-    #    tty: true
     command: python lachiwa_cli.py tui
-  
+ 
   lachiwa_sv:
     build: .
     image: lachiwa
@@ -34,11 +32,12 @@ services:
       - ./alerts:/usr/src/app/alerts
     environment:
       - FLASK_APP=server.py
+      - FLASK_ENV=development
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     ports:
       - "5000:5000"
-    command: flask run --host=0.0.0.0
+    command: flask run --host=0.0.0.0 --debug
 
 
 volumes:

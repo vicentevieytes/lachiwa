@@ -3,35 +3,35 @@ from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
 import nanoid
 from openpyxl import Workbook
-
+from typing import Optional
 
 def url_from_host_and_tokenid(host, id, protocol="http"):
     return f"{protocol}://{host}/?id={id}"
 
 class Token:
-    def __init__(self, host: str, description: str, email: str, token_type: str):
+    def __init__(self, host: str, description: str, email: str, token_type: str, id:Optional[str] =None):
         self.host = host
         self.description = description
         self.email = email
         self.token_type = token_type
         self.timestamp = datetime.now()
-        self.id = nanoid.generate(size=10)
+        self.id = id if id is not None else nanoid.generate(size=10)
 
     def __str__(self):
         return (f"Token(host={self.host}, description={self.description}, email={self.email}, "
                 f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id})")
 
     @classmethod
-    def from_token_type_str(cls, host: str, description: str, email: str, token_type: str) -> "Token":
+    def from_token_type_str(cls, host: str, description: str, email: str, token_type: str, id:Optional[str] = None) -> "Token":
         match token_type:
-            case "url":
-                token = URLToken(host, description, email)
+            case "URLToken":
+                token = URLToken(host, description, email, id=id)
                 return token
-            case "qr":
-                token = QRToken(host, description, email)
+            case "QRToken":
+                token = QRToken(host, description, email, id=id)
                 return token
             case "ExcelToken":
-                token = ExcelToken(host, description, email)
+                token = ExcelToken(host, description, email, id=id)
                 return token
             case _:
                 print("Wrong token type indicated")
@@ -39,11 +39,12 @@ class Token:
     
     @classmethod
     def from_dict(cls, token_attributes_mapping):
+        id = token_attributes_mapping.get("id")
         host = token_attributes_mapping.get("host")
         description = token_attributes_mapping.get("description")
         email = token_attributes_mapping.get("email")
         token_type = token_attributes_mapping.get("token_type")
-        return Token.from_token_type_str(host, description, email, token_type)
+        return Token.from_token_type_str(host, description, email, token_type, id=id)
           
     def write_out(self) -> None:
         pass
@@ -62,13 +63,13 @@ class Alert:
 
     def log_alert(self):
         with open(f"alerts/alert_log", "a") as alert_log:
-            alert_log.write(f"{self.timestamp} {self.token_type} Token:{self.id} {self.description}")
+            alert_log.write(f"{self.timestamp} {self.token_type} Token:{self.id} {self.description}\n")
         
 
 
 class URLToken(Token):
-    def __init__(self, host, description, email):
-        super().__init__(host, description, email, "URLToken")
+    def __init__(self, host, description, email, id:Optional[str] = None):
+        super().__init__(host, description, email, "URLToken", id=id)
         self.url = url_from_host_and_tokenid(self.host, self.id, "http")
         
     def write_out(self):
@@ -81,8 +82,8 @@ class URLToken(Token):
 
 
 class QRToken(Token):
-    def __init__(self, host: str, description: str, email: str):
-        super().__init__(host, description, email, "QRToken")
+    def __init__(self, host: str, description: str, email: str, id:Optional[str] = None):
+        super().__init__(host, description, email, "QRToken", id=id)
         self.filename = f"QR_{description}_{datetime.today()}.jpg"
 
     def write_out(self): 
@@ -107,8 +108,8 @@ class QRToken(Token):
 
 class ExcelToken(Token):
 
-    def __init__(self, host: str, description: str, email: str):
-        super().__init__(host, description, email, "ExcelToken")
+    def __init__(self, host: str, description: str, email: str, id:Optional[str] = None):
+        super().__init__(host, description, email, "ExcelToken", id=id)
         self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
 
     def write_out(self):

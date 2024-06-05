@@ -13,7 +13,7 @@ def alert_key(token_id):
 def get_redis_client() -> redis.StrictRedis:
     redis_host = os.getenv('REDIS_HOST', 'localhost')
     redis_port = int(os.getenv('REDIS_PORT', 6379))
-    return redis.StrictRedis(host=redis_host,port=redis_port, db=0)
+    return redis.StrictRedis(host=redis_host,port=redis_port, decode_responses=True, db=0)
 
 def save_token(token: Token) -> Optional[bool]:
     redis_client = get_redis_client()
@@ -27,7 +27,7 @@ def save_token(token: Token) -> Optional[bool]:
             "timestamp": token.timestamp.isoformat(),
             "id": str(token.id)
         }
-        redis_client.hset(key, mapping=token_data)
+        redis_client.hset(key,mapping=token_data)
         return True
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -39,24 +39,19 @@ def save_token(token: Token) -> Optional[bool]:
 def get_token_attributes(token_id: str) -> Union[Awaitable[dict], dict, None]:
     redis_client = get_redis_client()
     key = token_key(token_id)
-    try:
-        if not redis_client.exists(key):
-            print(f"Token ID {token_id} does not exist.")
-            return None
-        return redis_client.hgetall(key)
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    if not redis_client.exists(key):
+        print(f"Token ID {token_id} does not exit.")
         return None
-    finally:
-        redis_client.close()
+    return redis_client.hgetall(key)
 
 def fetch_token(token_id: str) -> Token:
     token_attributes = get_token_attributes(token_id)
+    print(token_attributes)
     return Token.from_dict(token_attributes)
 
 def store_alert(alert: Alert) -> Optional[bool]:
     redis_client = get_redis_client()
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now().isoformat()
     try:
         key = alert_key(alert.id)
         redis_client.rpush(key, timestamp) 
@@ -68,3 +63,8 @@ def store_alert(alert: Alert) -> Optional[bool]:
         # Ensure the Redis connection is closed properly
         redis_client.close()
 
+def main():
+    print(fetch_token("qhcYAwII3H"))
+
+if __name__ == "__main__":
+    main()
