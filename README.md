@@ -16,7 +16,6 @@ Excluir --build si no hubo cambios en la codebase
 - **Executable token**
 - **Alertas**
 - **Probar los tokens y el SV**
-- **Dividir lachiwa sv y lachiwa cli en dos directorios con Dockerfiles distintos**
 - **Extender funcionalidad desde la CLI o API (obtener lista de tokens, deshabilitar determinados tokens, obtener lista de alertas)**
 
 ## WORKING ON:
