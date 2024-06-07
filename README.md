@@ -4,18 +4,21 @@ Lachiwa is a CLI tool for generating honeytokens, similar to canarytokens.
 
 
 ## BUILD AND RUN
+
+En ambos casos comandos, excluir --build si no hubo cambios en la codebase
+
 Iniciar servidor:
-```docker-compose up lachiwa_sv```
+```docker-compose up --build lachiwa_sv```
 
 TUI para crear tokens nuevos:
  ```docker-compose run --build --rm lachiwa_cli```
-Excluir --build si no hubo cambios en la codebase
+
 
 
 ## PENDIENTES:
 - **Executable token**
-- **Alertas**
-- **Probar los tokens y el SV**
+- **Alertas por email (o algo asi)**
+- **Dividir lachiwa sv y lachiwa cli en dos directorios con Dockerfiles distintos**
 - **Extender funcionalidad desde la CLI o API (obtener lista de tokens, deshabilitar determinados tokens, obtener lista de alertas)**
 
 ## WORKING ON:
@@ -25,6 +28,7 @@ Excluir --build si no hubo cambios en la codebase
 - Germán es un **tipazo**.
 
 ## LOG
+- El servidor funciona y genera alertas en alerts/alert_log cuando los tokens son activados.
 - Escribimos una versión inicila del token Excel
 - Hicimos un docker-compose.yml para levantar a la vez la CLI y redis
 - Hicimos un Dockerfile para la CLI 

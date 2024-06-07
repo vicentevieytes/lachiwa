@@ -1,8 +1,10 @@
 import redis
 import os
 from datetime import datetime
-from lachiwa import Token, Alert
+from honeytokens import Token
+from alerts import Alert
 from typing import Awaitable, Union, Optional
+
 def token_key(token_id: str):
    return(f"Token:{token_id}")
 
@@ -15,7 +17,7 @@ def get_redis_client() -> redis.StrictRedis:
     redis_port = int(os.getenv('REDIS_PORT', 6379))
     return redis.StrictRedis(host=redis_host,port=redis_port, decode_responses=True, db=0)
 
-def save_token(token: Token) -> Optional[bool]:
+def store_token(token: Token) -> Optional[bool]:
     redis_client = get_redis_client()
     try:
         key = f"Token:{token.id}"
@@ -50,6 +52,8 @@ def fetch_token(token_id: str) -> Token|None:
         return Token.from_dict(token_attributes)
     return None
 
+
+# For every token which has been alerted, there is a Alert:token_id key, which maps to a list of all the individual timestamps when it was alerted.
 def store_alert(alert: Alert) -> Optional[bool]:
     redis_client = get_redis_client()
     timestamp = datetime.now().isoformat()
