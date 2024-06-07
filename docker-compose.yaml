@@ -1,30 +1,44 @@
-version: '3.9'
-
 services:
   redis:
-    image: "redis:latest"
-    container_name: "redis"
+    image: redis:latest
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes  # Keep Redis running continuously
+    #command: redis-server --appendonly yes  # Keep Redis running continuously
 
   lachiwa_cli:
-    build:
-      context: .
-    container_name: "lachiwa_cli"
+    build: .
+    image: lachiwa
+    container_name: lachiwa_cli
     depends_on:
       - redis
     volumes:
-      - .:/usr/src/app/honeytokens
+      - ./honeytokens:/usr/src/app/honeytokens
     environment:
       - TERM=xterm-256color
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    stdin_open: true
-    tty: true
-    entrypoint: ["python", "lachiwa_cli.py", "tui"]
+    command: python lachiwa_cli.py tui
+ 
+  lachiwa_sv:
+    build: .
+    image: lachiwa
+    container_name: lachiwa_sv
+    depends_on:
+      - redis
+    volumes:
+      - ./alerts:/usr/src/app/alerts
+    environment:
+      - FLASK_APP=server.py
+      - FLASK_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "5000:5000"
+    command: flask run --host=0.0.0.0 --debug
+
 
 volumes:
   redis-data:

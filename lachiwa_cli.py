@@ -1,7 +1,7 @@
 import click
 from trogon import tui
-from lachiwa import Token, URLToken, QRToken, ExcelToken
-from redismanager import save_token 
+from honeytokens import Token, URLToken, QRToken, ExcelToken
+from redismanager import store_token 
 
 @tui()
 @click.command()
@@ -15,7 +15,8 @@ def create_honeytoken(host: str, description: str, email: str, token_type: str):
 
 def from_token_type_str(host: str, description: str, email: str, token_type: str) -> Token:
     token = Token.from_token_type_str(host, description, email, token_type)
-    save_token(token)
+    store_token(token)
+    token.write_out()
     match token:
         case URLToken():
             click.echo(f"Generated URL: {token.url}")
@@ -31,3 +32,4 @@ def from_token_type_str(host: str, description: str, email: str, token_type: str
 
 if __name__ == '__main__':
     create_honeytoken()
+    
