@@ -172,34 +172,35 @@ EOF
             output_file.write(self.dockerfile_content)
 
 
-class DockerfileToken2(Token):
-    def __init__(
-        self, host: str, description: str, email: str, id: Optional[str] = None
-    ):
-        super().__init__(host, description, email, "DockerfileToken", id=id)
-        self.dockerfile_content = ""
-
-    def write_out(self):
-        with open(
-            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
-        ) as output_file:
-            output_file.write(self.dockerfile_content)
-
-    def str(self):
-        return (
-            f"DockerfileToken(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, dockerfile_content={self.dockerfile_content})"
-        )
-
-    def create_honeytoken(self, dockerfile_content: str):
-        honeytoken_content = (
-            f"RUN nc {self.url} 80"  # Asuming that has netcat, short and simple.
-        )
-
-        self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
-
-    def write_dockerfile(self):
-        with open(
-            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
-        ) as output_file:
-            output_file.write(self.dockerfile_content)
+# class DockerfileToken2(Token): 
+#    def __init__(
+#        self, host: str, description: str, email: str, id: Optional[str] = None
+#    ):
+#        super().__init__(host, description, email, "DockerfileToken", id=id)
+#        self.dockerfile_content = ""
+#
+#    def write_out(self):
+#        with open(
+#            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
+#        ) as output_file:
+#            output_file.write(self.dockerfile_content)
+#
+#    def str(self):
+#        return (
+#            f"DockerfileToken(host={self.host}, description={self.description}, email={self.email}, "
+#            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, dockerfile_content={self.dockerfile_content})"
+#        )
+#
+#    def create_honeytoken(self, dockerfile_content: str):
+#        honeytoken_content = (
+#            f"RUN nc {self.url} 80"  # Asuming that has netcat, short and simple. CANT ASSUME THIS.
+#        )
+#
+#        self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
+#
+#    def write_dockerfile(self):
+#        with open(
+#            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
+#        ) as output_file:
+#            output_file.write(self.dockerfile_content)
+#
