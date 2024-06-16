@@ -25,7 +25,7 @@ TUI para crear tokens nuevos:
 - Tomás está laburando en la branch Excel para armar el **ExcelToken**.
 - Lautaro está laburando en el **informe**.
 - Vicente está laburando con el **backend** y la configuración del **docker-compose**.
-- Germán es un **tipazo**. (y está laburando en un branch interno no pusheado a remote el **DockerFileToken**)
+- Germán es un **tipazo**. (ya pusheo y espera PR del branch  **DockerFileToken**)
 
 ## LOG
 - El servidor funciona y genera alertas en alerts/alert_log cuando los tokens son activados.
