@@ -44,7 +44,9 @@ def get_token_attributes(token_id: str) -> Union[Awaitable[dict], dict, None]:
     if not redis_client.exists(key):
         print(f"Token ID {token_id} does not exit.")
         return None
-    return redis_client.hgetall(key)
+    token_attributes = redis_client.hgetall(key) 
+    token_attributes["timestamp"] = datetime.fromisoformat(token_attributes["timestamp"]) #type: ignore
+    return token_attributes
 
 def fetch_token(token_id: str) -> Token|None:
     token_attributes = get_token_attributes(token_id)
@@ -69,7 +71,7 @@ def store_alert(alert: Alert) -> Optional[bool]:
         redis_client.close()
 
 def main():
-    print(fetch_token("qhcYAwII3H"))
+    print(type(fetch_token("qhcYAwII3H").timestamp))
 
 if __name__ == "__main__":
     main()

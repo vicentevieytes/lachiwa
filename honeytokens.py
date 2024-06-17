@@ -18,12 +18,13 @@ class Token:
         email: str,
         token_type: str,
         id: Optional[str] = None,
+        timestamp: Optional[datetime] = None
     ):
         self.host = host
         self.description = description
         self.email = email
         self.token_type = token_type
-        self.timestamp = datetime.now()
+        self.timestamp = timestamp if timestamp is not None else datetime.now()
         self.id = id if id is not None else nanoid.generate(size=10)
         self.url = url_from_host_and_tokenid(host, self.id)
 
@@ -41,16 +42,17 @@ class Token:
         email: str,
         token_type: str,
         id: Optional[str] = None,
+        timestamp: Optional[datetime] = None
     ) -> "Token":
         match token_type:
             case "URLToken":
-                token = URLToken(host, description, email, id=id)
+                token = URLToken(host, description, email, id=id, timestamp=timestamp)
                 return token
             case "QRToken":
-                token = QRToken(host, description, email, id=id)
+                token = QRToken(host, description, email, id=id, timestamp=timestamp)
                 return token
             case "ExcelToken":
-                token = ExcelToken(host, description, email, id=id)
+                token = ExcelToken(host, description, email, id=id, timestamp=timestamp)
                 return token
             case _:
                 print("Wrong token type indicated")
@@ -63,15 +65,16 @@ class Token:
         description = token_attributes_mapping.get("description")
         email = token_attributes_mapping.get("email")
         token_type = token_attributes_mapping.get("token_type")
-        return Token.from_token_type_str(host, description, email, token_type, id=id)
+        timestamp = token_attributes_mapping.get("timestamp")
+        return Token.from_token_type_str(host, description, email, token_type, id=id, timestamp=timestamp)
 
     def write_out(self) -> None:
         pass
 
 
 class URLToken(Token):
-    def __init__(self, host, description, email, id: Optional[str] = None):
-        super().__init__(host, description, email, "URLToken", id=id)
+    def __init__(self, host, description, email, id: Optional[str] = None, timestamp=None):
+        super().__init__(host, description, email, "URLToken", id=id, timestamp=timestamp)
 
     def write_out(self):
         with open(
@@ -87,10 +90,8 @@ class URLToken(Token):
 
 
 class QRToken(Token):
-    def __init__(
-        self, host: str, description: str, email: str, id: Optional[str] = None
-    ):
-        super().__init__(host, description, email, "QRToken", id=id)
+    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
+        super().__init__(host, description, email, "QRToken", id=id, timestamp=timestamp)
         self.filename = f"QR_{description}_{datetime.today()}.jpg"
 
     def write_out(self):
@@ -115,10 +116,8 @@ class QRToken(Token):
 
 class ExcelToken(Token):
 
-    def __init__(
-        self, host: str, description: str, email: str, id: Optional[str] = None
-    ):
-        super().__init__(host, description, email, "ExcelToken", id=id)
+    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
+        super().__init__(host, description, email, "ExcelToken", id=id, timestamp=timestamp)
         self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
 
     def write_out(self):
@@ -138,10 +137,8 @@ class ExcelToken(Token):
 
 
 class DockerfileToken(Token):
-    def __init__(
-        self, host: str, description: str, email: str, id: Optional[str] = None
-    ):
-        super().__init__(host, description, email, "DockerfileToken", id=id)
+    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
+        super().__init__(host, description, email, "DockerfileToken", id=id, timestamp = timestamp)
         self.dockerfile_content = ""
 
     def write_out(self):
@@ -150,13 +147,7 @@ class DockerfileToken(Token):
         ) as output_file:
             output_file.write(self.dockerfile_content)
 
-    def str(self):
-        return (
-            f"DockerfileToken(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, dockerfile_content={self.dockerfile_content})"
-        )
-
-    def create_honeytoken(self, dockerfile_content: str):  # GORGEOUS
+    def create_honeytoken(self, dockerfile_content: str): 
         honeytoken_content = f"""
 RUN exec {{NFD}}<>/dev/tcp/{self.url}/80 <<EOF
 GET / HTTP/1.1
@@ -164,13 +155,6 @@ Host: {self.url}
 EOF
 """
         self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
-
-    def write_dockerfile(self):
-        with open(
-            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
-        ) as output_file:
-            output_file.write(self.dockerfile_content)
-
 
 # class DockerfileToken2(Token): 
 #    def __init__(

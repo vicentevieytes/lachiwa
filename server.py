@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify
 from datetime import datetime
 import redismanager
-from honeytokens import Token, URLToken, QRToken, ExcelToken, Alert
+from honeytokens import Token, URLToken, QRToken, ExcelToken
+from alerts import Alert
 
 app = Flask(__name__)
 

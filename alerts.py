@@ -1,4 +1,4 @@
-from honeytoken import Token
+from honeytokens import Token
 from datetime import datetime
 
 class Alert:
@@ -14,7 +14,7 @@ class Alert:
 
     def log_alert(self):
         with open(f"alerts/alert_log", "a") as alert_log:
-            alert_log.write(f"{self.timestamp} {self.token_type} Token:{self.id} {self.description}\n")
+            alert_log.write(f"{self.timestamp} {self.token_type} Token:{self.id} Creation Timestamp: {self.token_timestamp} Description: {self.description}\n")
 
 #TODO: def send_alert_email(self):
 
