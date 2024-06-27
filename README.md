@@ -16,7 +16,7 @@ TUI para crear tokens nuevos:
 
 
 ## PENDIENTES:
-- **Executable token**
+- **Más tipos de token como PDF o binario**
 - **Alertas por email (o algo asi)**
 - **Dividir lachiwa sv y lachiwa cli en dos directorios con Dockerfiles distintos**
 - **Extender funcionalidad desde la CLI o API (obtener lista de tokens, deshabilitar determinados tokens, obtener lista de alertas)**
