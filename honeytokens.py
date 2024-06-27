@@ -188,3 +188,40 @@ EOF
 #        ) as output_file:
 #            output_file.write(self.dockerfile_content)
 #
+
+
+class HTMLToken(Token):
+    def __init__(self, host: str, allowed_url: str, description: str, email: str, html_file_path: str, id: Optional[str] = None, timestamp=None):
+        super().__init__(host, description, email, "HTMLToken", id=id, timestamp=timestamp)
+        self.html_file_path = html_file_path
+        self.allowed_url = allowed_url
+        self.filename = f"HTML_{description}_{datetime.today()}.html"
+
+    def write_out(self):
+        tokenized_html = self.tokenize_html(self.html_file_path)
+        with open(f"honeytokens/{self.filename}", "w") as html_file:
+            html_file.write(tokenized_html)
+
+    def tokenize_html(self, html_file_path: str) -> str:
+        with open(html_file_path, "r") as file:
+            html_content = file.read()
+
+        alert_script = f"""
+<script>
+if (window.location.hostname !== "{self.allowed_url}") {{
+    fetch("{url_from_host_and_tokenid(self.host, self.id)}", {{
+        method: "POST",
+        headers: {{
+            "Content-Type": "application/json",
+        }},
+        body: JSON.stringify({{
+            token_id: "{self.id}",
+            token_type: "HTMLToken",
+            detected_domain: window.location.hostname,
+            timestamp: new Date().toISOString(),
+        }}),
+    }});
+}}
+</script>
+"""
+        return html_content + alert_script
