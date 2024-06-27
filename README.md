@@ -23,7 +23,7 @@ TUI para crear tokens nuevos:
 
 ## WORKING ON:
 - Tomás está laburando en la branch Excel para armar el **ExcelToken**.
-- Lautaro está laburando en el **informe**.
+- Lautaro está laburando en el **informe** y **HTMLToken**.
 - Vicente está laburando con el **backend** y la configuración del **docker-compose**.
 - Germán es un **tipazo**. (ya pusheo y espera PR del branch  **DockerFileToken**)
 
