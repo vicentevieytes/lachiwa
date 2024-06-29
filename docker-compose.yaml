@@ -20,7 +20,7 @@ services:
       - TERM=xterm-256color
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    command: python lachiwa_cli.py tui
+    command: python lachiwa_cli.py
  
   lachiwa_sv:
     build: .
