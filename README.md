@@ -5,14 +5,16 @@ Lachiwa is a CLI tool for generating honeytokens, similar to canarytokens.
 
 ## BUILD AND RUN
 
-En ambos casos comandos, excluir --build si no hubo cambios en la codebase
-
 Iniciar servidor:
-```docker-compose up --build lachiwa_sv```
+```docker-compose up --build -d lachiwa_sv```
 
-TUI para crear tokens nuevos:
- ```docker-compose run --build --rm lachiwa_cli```
+Utilizar la CLI:
+```docker compose run --rm lachiwa_cli create [token_type] [options]```
 
+Ejemplos:
+```docker compose run --rm lachiwa_cli create urltoken --host localhost:5000 --description "url for webhook on email" --email "rbaader@yahoo.com"]```
+```docker compose run --rm lachiwa_cli create qrtoken --host localhost:5000 --description "qr for public wifi" --email "hackerman@gmail.com"]```
+```docker compose run --rm lachiwa_cli create htmltoken --host localhost:5000 --description "company website" --email "pitbull@worldwidemail.com"]```
 
 
 ## PENDIENTES:
