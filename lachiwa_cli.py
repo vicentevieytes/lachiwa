@@ -1,35 +1,61 @@
 import click
-from honeytokens import Token, URLToken, QRToken, ExcelToken, HTMLToken
+from honeytokens import DockerfileToken, Token, URLToken, QRToken, ExcelToken, HTMLToken
 from redismanager import store_token 
 
-@click.command()
-@click.option('--host', prompt='Host', help='The host for the honeytoken.', type=str)
-@click.option('--description', prompt='Description', help='Description of the honeytoken.', type=str)
-@click.option('--email', prompt='Email', help='Email associated with the honeytoken.', type=str)
-@click.option('--token_type', prompt='Token Type', help='Type of the honeytoken.', type=str)
-def create_honeytoken(host: str, description: str, email: str, token_type: str):
-   return from_token_type_str(host, description, email, token_type)
+def common_options(f):
+    """Common options for all tokens."""
+    f = click.option('--host', required=True, help='The host for the token.')(f)
+    f = click.option('--description', required=True, help='The description for the token.')(f)
+    f = click.option('--email', required=True, help='The email associated with the token.')(f)
+    return f
 
+@click.group()
+def create():
+    """Create a token."""
+    pass
 
-def from_token_type_str(host: str, description: str, email: str, token_type: str) -> Token:
-    token = Token.from_token_type_str(host, description, email, token_type)
-    store_token(token)
+@create.command()
+@common_options
+def urltoken(host, description, email):
+    token = URLToken(host, description, email)
     token.write_out()
-    match token:
-        case URLToken():
-            click.echo(f"Generated URL: {token.url}")
-        case QRToken():
-            click.echo(f"Generated QR: {token.filename}")
-        case ExcelToken():
-            click.echo(f"Generated Excel: {token.filename}")
-        case HTMLToken():
-            click.echo(f"Generated HTML: {token.filename}")
-        case _:
-            print("Wrong token type indicated")
-            exit(1)
-    click.echo(f"Token Details: {token}")
-    return token
+    click.echo(f"Your URLToken: {token.url}")
+
+@create.command()
+@common_options
+def qrtoken(host, description, email):
+    token = QRToken(host, description, email)
+    token.write_out()
+    click.echo(f"Your QRToken file: {token.filename}")
+
+@create.command()
+@common_options
+def exceltoken(host, description, email):
+    token = ExcelToken(host, description, email)
+    token.write_out()
+    click.echo(f"Your ExcelToken file: {token.filename}")
+
+@create.command()
+@common_options
+def dockertoken(host, description, email):
+    token = DockerfileToken(host, description, email)
+    token.write_out()
+    click.echo(f"Your DockerfileToken file: {token.filename}")
+
+@create.command()
+@common_options
+@click.option("--file", required = True, help = "file path for input html file")
+@click.option("--allowed", required = True, help = "The domain where your website should be hosted at")
+def htmltoken(host, description, email, file, allowed):
+    token = HTMLToken(host, allowed, description, email, file)
+    token.write_out()
+    click.echo(f"Your HTMLToken file: {token.filename}")
+
+@click.group()
+def cli():
+    pass
+
+cli.add_command(create)
 
 if __name__ == '__main__':
-    create_honeytoken()
-    
+   cli()     

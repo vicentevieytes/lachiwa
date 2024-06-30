@@ -140,6 +140,7 @@ class DockerfileToken(Token):
     def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
         super().__init__(host, description, email, "DockerfileToken", id=id, timestamp = timestamp)
         self.dockerfile_content = ""
+        self.filename = f"Dockerfile_{description}_{self.timestamp}"
 
     def write_out(self):
         with open(
