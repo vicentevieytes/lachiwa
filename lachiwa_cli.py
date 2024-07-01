@@ -19,6 +19,7 @@ def create():
 def urltoken(host, description, email):
     token = URLToken(host, description, email)
     token.write_out()
+    store_token(token)
     click.echo(f"Your URLToken: {token.url}")
 
 @create.command()
@@ -26,6 +27,7 @@ def urltoken(host, description, email):
 def qrtoken(host, description, email):
     token = QRToken(host, description, email)
     token.write_out()
+    store_token(token)
     click.echo(f"Your QRToken file: {token.filename}")
 
 @create.command()
@@ -33,6 +35,7 @@ def qrtoken(host, description, email):
 def exceltoken(host, description, email):
     token = ExcelToken(host, description, email)
     token.write_out()
+    store_token(token)
     click.echo(f"Your ExcelToken file: {token.filename}")
 
 @create.command()
@@ -40,6 +43,7 @@ def exceltoken(host, description, email):
 def dockertoken(host, description, email):
     token = DockerfileToken(host, description, email)
     token.write_out()
+    store_token(token)
     click.echo(f"Your DockerfileToken file: {token.filename}")
 
 @create.command()
@@ -49,13 +53,27 @@ def dockertoken(host, description, email):
 def htmltoken(host, description, email, file, allowed):
     token = HTMLToken(host, allowed, description, email, file)
     token.write_out()
+    store_token(token)
     click.echo(f"Your HTMLToken file: {token.filename}")
+
+
+
+@click.group()
+def get():
+    """Create a token."""
+    pass
+
+@get.command()
+def alerts():
+    print("traeme las alertas wachin")
+
 
 @click.group()
 def cli():
     pass
 
 cli.add_command(create)
+cli.add_command(get)
 
 if __name__ == '__main__':
    cli()     
