@@ -144,10 +144,6 @@ class ExcelToken(Token):
                     # directory, no se que tan necesario sea, porque no veo
                     # que se creen directorios
                     continue
-                """Given an entry in a zip file, extract the file and perform
-                a search
-                and replace on the contents.
-                Returns the contents as a string."""
                 dirname = tempfile.mkdtemp()
                 fname = doc.extract(entry, dirname)
                 url = url_from_host_and_tokenid(self.host, self.id)
@@ -247,9 +243,8 @@ class WindowsDirectoryToken(Token):
     def __init__(self, host: str, description: str, email: str):
         super().__init__(host, description, email, "WindowsDirectoryToken")
         self.directory = f"WindowsDirectory_{description}_{datetime.today()}"
-        self.makeToken(self.directory)
 
-    def makeToken(self, directory: str):
+    def write_out(self):
         """
         Creamos una carpeta con un archivo desktop.ini que tiene un un icono con la url del token.
         Cuando el directorio se abre en el Explorador de Windows, el sistema intenta acceder al icono,
@@ -260,7 +255,7 @@ class WindowsDirectoryToken(Token):
         [.ShellClassInfo]
         IconResource={icon_url},0
         """
-        zip_filename = f"{directory}.zip"
+        zip_filename = f"{self.directory}.zip"
         with ZipFile(zip_filename, "w") as zip_file:
             zip_file.writestr("desktop.ini", desktop_ini_content.strip())
 
