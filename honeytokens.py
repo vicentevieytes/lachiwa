@@ -1,4 +1,8 @@
 from datetime import datetime
+from io import BytesIO
+import shutil
+import tempfile
+from zipfile import ZipFile
 from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
 import nanoid
@@ -18,7 +22,7 @@ class Token:
         email: str,
         token_type: str,
         id: Optional[str] = None,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ):
         self.host = host
         self.description = description
@@ -42,7 +46,7 @@ class Token:
         email: str,
         token_type: str,
         id: Optional[str] = None,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ) -> "Token":
         match token_type:
             case "URLToken":
@@ -66,15 +70,21 @@ class Token:
         email = token_attributes_mapping.get("email")
         token_type = token_attributes_mapping.get("token_type")
         timestamp = token_attributes_mapping.get("timestamp")
-        return Token.from_token_type_str(host, description, email, token_type, id=id, timestamp=timestamp)
+        return Token.from_token_type_str(
+            host, description, email, token_type, id=id, timestamp=timestamp
+        )
 
     def write_out(self) -> None:
         pass
 
 
 class URLToken(Token):
-    def __init__(self, host, description, email, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "URLToken", id=id, timestamp=timestamp)
+    def __init__(
+        self, host, description, email, id: Optional[str] = None, timestamp=None
+    ):
+        super().__init__(
+            host, description, email, "URLToken", id=id, timestamp=timestamp
+        )
 
     def write_out(self):
         with open(
@@ -90,8 +100,17 @@ class URLToken(Token):
 
 
 class QRToken(Token):
-    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "QRToken", id=id, timestamp=timestamp)
+    def __init__(
+        self,
+        host: str,
+        description: str,
+        email: str,
+        id: Optional[str] = None,
+        timestamp=None,
+    ):
+        super().__init__(
+            host, description, email, "QRToken", id=id, timestamp=timestamp
+        )
         self.filename = f"QR_{description}_{datetime.today()}.jpg"
 
     def write_out(self):
@@ -116,29 +135,75 @@ class QRToken(Token):
 
 class ExcelToken(Token):
 
-    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "ExcelToken", id=id, timestamp=timestamp)
+    def __init__(self, host: str, description: str, email: str):
+        super().__init__(host, description, email, "ExcelToken")
         self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
+        self.makeToken(f"honeytokens/{self.filename}")
 
-    def write_out(self):
-        self.create_excel_file(f"honeytokens/{self.filename}")
+    def makeToken(self, file_name: str):
+        with open(file_name, "rb") as f:
+            input_buf = BytesIO(f.read())
+        output_buf = BytesIO()
+        # un XML es esencialmente un ZIP file (Open XML standard), por eso
+        # creamos un ZIP
+        output_zip = ZipFile(output_buf, "w")
 
-    def create_excel_file(self, file_name: str):
-        workbook = Workbook()
-        sheet = workbook.active
-        sheet.title = "Data"
+        # El XML tiene diferentes contenidos, solo queremos modificar el workbook.xml
+        # y sus relaciones
+        with ZipFile(input_buf, "r") as doc:
+            for entry in doc.filelist:
+                if entry.external_attr:  # Aca se hace ademas que sea un
+                    # directory, no se que tan necesario sea, porque no veo
+                    # que se creen directorios
+                    continue
+                dirname = tempfile.mkdtemp()
+                fname = doc.extract(entry, dirname)
+                url = url_from_host_and_tokenid(self.host, self.id)
+                with open(fname, "r") as fd:
+                    contents = fd.read().replace(search="HONEYDROP_TOKEN_URL", url=url)
+                shutil.rmtree(dirname)
+                output_zip.writestr(entry, contents)
 
-        # Canary Token hiden in the excel
-        hidden_sheet = workbook.create_sheet(title="Hidden")
-        hidden_sheet["A1"] = self.url
-        workbook.active.sheet_state = "hidden"
+        output_zip.close()
+        output_buf.seek(0)
+        with open(file_name, "wb") as f:
+            f.write(output_buf.read())
+        output_buf.close()
 
-        workbook.save(file_name)
+        """
+        Supuestamente esta es otra manera de hacerlo, poniendo un pedazo de codigo que se ejecute cuando se abre
+        el archivo, pero no la puedo probar...
+        https://www.xlwings.org
+        """
+        # wb = xw.Book()
+
+        # # Añade el VbModule
+        # vbmodule = wb.api.VBProject.VBComponents.Add(1)
+
+        # # escribimos para que se ejecute la url
+        # url = url_from_host_and_tokenid(self.host, self.id)
+        # vbmodule.CodeModule.AddFromString(f"""
+        # Private Sub Workbook_Open()
+        #     ThisWorkbook.FollowHyperlink "{url}"
+        # End Sub
+        # """)
+
+        # wb.save(file_name)
+        # wb.close()
 
 
 class DockerfileToken(Token):
-    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "DockerfileToken", id=id, timestamp = timestamp)
+    def __init__(
+        self,
+        host: str,
+        description: str,
+        email: str,
+        id: Optional[str] = None,
+        timestamp=None,
+    ):
+        super().__init__(
+            host, description, email, "DockerfileToken", id=id, timestamp=timestamp
+        )
         self.dockerfile_content = ""
         self.filename = f"Dockerfile_{description}_{self.timestamp}"
 
@@ -148,16 +213,24 @@ class DockerfileToken(Token):
         ) as output_file:
             output_file.write(self.dockerfile_content)
 
-    def create_honeytoken(self, dockerfile_content: str): 
+    def create_honeytoken(self, dockerfile_content: str):
+        # Possible problem : To make the /dev/tcp connection with sucess i think to be root :'(
+        # fd 3 and 5000 the port we are our server is listening. Both could be a variable as before {{NFD}}, {{OURSERVERPORT}}
+        #        honeytoken_content = f"""
+        # RUN exec 3<>/dev/tcp/{self.host}/5000 <<EOF
+        # GET / HTTP/1.1
+        # Host: {self.host}
+        # EOF
+        # """
         honeytoken_content = f"""
-RUN exec {{NFD}}<>/dev/tcp/{self.url}/80 <<EOF
-GET / HTTP/1.1
-Host: {self.url}
-EOF
-"""
+        RUN echo "HEAD / HTTP/1.0" 3<>/dev/tcp/{self.host}/5000 
+        """
+
+        # I think we could add the line at the beginning to reduce the probability of being blocked.
         self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
 
-# class DockerfileToken2(Token): 
+
+# class DockerfileToken2(Token):
 #    def __init__(
 #        self, host: str, description: str, email: str, id: Optional[str] = None
 #    ):
@@ -191,9 +264,41 @@ EOF
 #
 
 
+class WindowsDirectoryToken(Token):
+    def __init__(self, host: str, description: str, email: str):
+        super().__init__(host, description, email, "WindowsDirectoryToken")
+        self.directory = f"WindowsDirectory_{description}_{datetime.today()}"
+
+    def write_out(self):
+        """
+        Creamos una carpeta con un archivo desktop.ini que tiene un un icono con la url del token.
+        Cuando el directorio se abre en el Explorador de Windows, el sistema intenta acceder al icono,
+        y se hace el request al servidor.
+        """
+        icon_url = url_from_host_and_tokenid(self.host, self.id)
+        desktop_ini_content = f"""
+        [.ShellClassInfo]
+        IconResource={icon_url},0
+        """
+        zip_filename = f"{self.directory}.zip"
+        with ZipFile(zip_filename, "w") as zip_file:
+            zip_file.writestr("desktop.ini", desktop_ini_content.strip())
+
+
 class HTMLToken(Token):
-    def __init__(self, host: str, allowed_url: str, description: str, email: str, html_file_path: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "HTMLToken", id=id, timestamp=timestamp)
+    def __init__(
+        self,
+        host: str,
+        allowed_url: str,
+        description: str,
+        email: str,
+        html_file_path: str,
+        id: Optional[str] = None,
+        timestamp=None,
+    ):
+        super().__init__(
+            host, description, email, "HTMLToken", id=id, timestamp=timestamp
+        )
         self.html_file_path = html_file_path
         self.allowed_url = allowed_url
         self.filename = f"HTML_{description}_{datetime.today()}.html"

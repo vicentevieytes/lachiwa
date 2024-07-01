@@ -1,18 +1,24 @@
 import click
-from honeytokens import DockerfileToken, Token, URLToken, QRToken, ExcelToken, HTMLToken
-from redismanager import store_token 
+from honeytokens import DockerfileToken, Token, URLToken, QRToken, ExcelToken, HTMLToken, WindowsDirectoryToken
+from redismanager import store_token
+
 
 def common_options(f):
     """Common options for all tokens."""
-    f = click.option('--host', required=True, help='The host for the token.')(f)
-    f = click.option('--description', required=True, help='The description for the token.')(f)
-    f = click.option('--email', required=True, help='The email associated with the token.')(f)
+    f = click.option('--host', required=True,
+                     help='The host for the token.')(f)
+    f = click.option('--description', required=True,
+                     help='The description for the token.')(f)
+    f = click.option('--email', required=True,
+                     help='The email associated with the token.')(f)
     return f
+
 
 @click.group()
 def create():
     """Create a token."""
     pass
+
 
 @create.command()
 @common_options
@@ -22,6 +28,7 @@ def urltoken(host, description, email):
     store_token(token)
     click.echo(f"Your URLToken: {token.url}")
 
+
 @create.command()
 @common_options
 def qrtoken(host, description, email):
@@ -29,6 +36,7 @@ def qrtoken(host, description, email):
     token.write_out()
     store_token(token)
     click.echo(f"Your QRToken file: {token.filename}")
+
 
 @create.command()
 @common_options
@@ -38,6 +46,7 @@ def exceltoken(host, description, email):
     store_token(token)
     click.echo(f"Your ExcelToken file: {token.filename}")
 
+
 @create.command()
 @common_options
 def dockertoken(host, description, email):
@@ -46,16 +55,23 @@ def dockertoken(host, description, email):
     store_token(token)
     click.echo(f"Your DockerfileToken file: {token.filename}")
 
+
 @create.command()
 @common_options
-@click.option("--file", required = True, help = "file path for input html file")
-@click.option("--allowed", required = True, help = "The domain where your website should be hosted at")
+@click.option("--file", required=True, help="file path for input html file")
+@click.option("--allowed", required=True, help="The domain where your website should be hosted at")
 def htmltoken(host, description, email, file, allowed):
     token = HTMLToken(host, allowed, description, email, file)
     token.write_out()
     store_token(token)
     click.echo(f"Your HTMLToken file: {token.filename}")
 
+@create.command()
+@common_options
+def windowstoken(host, description, email):
+    token = WindowsDirectoryToken(host, description, email)
+    token.write_out()
+    click.echo(f"Your WindowsToken file: {token.filename}")
 
 
 @click.group()
@@ -72,8 +88,9 @@ def alerts():
 def cli():
     pass
 
+
 cli.add_command(create)
 cli.add_command(get)
 
 if __name__ == '__main__':
-   cli()     
+    cli()
