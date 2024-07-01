@@ -63,6 +63,7 @@ def htmltoken(host, description, email, file, allowed):
 
 
 @create.command()
+@common_options
 def windowstoken(host, description, email):
     token = WindowsDirectoryToken(host, description, email)
     token.write_out()
