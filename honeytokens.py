@@ -1,4 +1,8 @@
 from datetime import datetime
+from io import BytesIO
+import shutil
+import tempfile
+from zipfile import ZipFile
 from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
 import nanoid
@@ -46,13 +50,16 @@ class Token:
     ) -> "Token":
         match token_type:
             case "URLToken":
-                token = URLToken(host, description, email, id=id, timestamp=timestamp)
+                token = URLToken(host, description, email,
+                                 id=id, timestamp=timestamp)
                 return token
             case "QRToken":
-                token = QRToken(host, description, email, id=id, timestamp=timestamp)
+                token = QRToken(host, description, email,
+                                id=id, timestamp=timestamp)
                 return token
             case "ExcelToken":
-                token = ExcelToken(host, description, email, id=id, timestamp=timestamp)
+                token = ExcelToken(host, description, email,
+                                   id=id, timestamp=timestamp)
                 return token
             case _:
                 print("Wrong token type indicated")
@@ -116,29 +123,74 @@ class QRToken(Token):
 
 class ExcelToken(Token):
 
-    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "ExcelToken", id=id, timestamp=timestamp)
+    def __init__(self, host: str, description: str, email: str):
+        super().__init__(host, description, email, "ExcelToken")
         self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
+        self.makeToken(f"honeytokens/{self.filename}")
 
-    def write_out(self):
-        self.create_excel_file(f"honeytokens/{self.filename}")
+    def makeToken(self, file_name: str):
+        with open(file_name, "rb") as f:
+            input_buf = BytesIO(f.read())
+        output_buf = BytesIO()
+        # un XML es esencialmente un ZIP file (Open XML standard), por eso
+        # creamos un ZIP
+        output_zip = ZipFile(output_buf, "w")
 
-    def create_excel_file(self, file_name: str):
-        workbook = Workbook()
-        sheet = workbook.active
-        sheet.title = "Data"
+# El XML tiene diferentes contenidos, solo queremos modificar el workbook.xml
+# y sus relaciones
+        with ZipFile(input_buf, "r") as doc:
+            for entry in doc.filelist:
+                if entry.external_attr:  # Aca se hace ademas que sea un
+                    # directory, no se que tan necesario sea, porque no veo
+                    # que se creen directorios
+                    continue
+                """Given an entry in a zip file, extract the file and perform
+                a search
+                and replace on the contents.
+                Returns the contents as a string."""
+                dirname = tempfile.mkdtemp()
+                fname = doc.extract(entry, dirname)
+                url = url_from_host_and_tokenid(self.host, self.id)
+                with open(fname, "r") as fd:
+                    contents = fd.read().replace(
+                        search="HONEYDROP_TOKEN_URL",
+                        url=url
+                    )
+                shutil.rmtree(dirname)
+                output_zip.writestr(entry, contents)
 
-        # Canary Token hiden in the excel
-        hidden_sheet = workbook.create_sheet(title="Hidden")
-        hidden_sheet["A1"] = self.url
-        workbook.active.sheet_state = "hidden"
+        output_zip.close()
+        output_buf.seek(0)
+        with open(file_name, "wb") as f:
+            f.write(output_buf.read())
+        output_buf.close()
 
-        workbook.save(file_name)
+        """
+        Supuestamente esta es otra manera de hacerlo, poniendo un pedazo de codigo que se ejecute cuando se abre
+        el archivo, pero no la puedo probar...
+        https://www.xlwings.org
+        """
+        # wb = xw.Book()
+
+        # # Añade el VbModule
+        # vbmodule = wb.api.VBProject.VBComponents.Add(1)
+
+        # # escribimos para que se ejecute la url
+        # url = url_from_host_and_tokenid(self.host, self.id)
+        # vbmodule.CodeModule.AddFromString(f"""
+        # Private Sub Workbook_Open()
+        #     ThisWorkbook.FollowHyperlink "{url}"
+        # End Sub
+        # """)
+
+        # wb.save(file_name)
+        # wb.close()
 
 
 class DockerfileToken(Token):
     def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "DockerfileToken", id=id, timestamp = timestamp)
+        super().__init__(host, description, email,
+                         "DockerfileToken", id=id, timestamp=timestamp)
         self.dockerfile_content = ""
         self.filename = f"Dockerfile_{description}_{self.timestamp}"
 
@@ -148,7 +200,7 @@ class DockerfileToken(Token):
         ) as output_file:
             output_file.write(self.dockerfile_content)
 
-    def create_honeytoken(self, dockerfile_content: str): 
+    def create_honeytoken(self, dockerfile_content: str):
         honeytoken_content = f"""
 RUN exec {{NFD}}<>/dev/tcp/{self.url}/80 <<EOF
 GET / HTTP/1.1
@@ -157,7 +209,7 @@ EOF
 """
         self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
 
-# class DockerfileToken2(Token): 
+# class DockerfileToken2(Token):
 #    def __init__(
 #        self, host: str, description: str, email: str, id: Optional[str] = None
 #    ):
@@ -189,6 +241,28 @@ EOF
 #        ) as output_file:
 #            output_file.write(self.dockerfile_content)
 #
+
+
+class WindowsDirectoryToken(Token):
+    def __init__(self, host: str, description: str, email: str):
+        super().__init__(host, description, email, "WindowsDirectoryToken")
+        self.directory = f"WindowsDirectory_{description}_{datetime.today()}"
+        self.makeToken(self.directory)
+
+    def makeToken(self, directory: str):
+        """
+        Creamos una carpeta con un archivo desktop.ini que tiene un un icono con la url del token.
+        Cuando el directorio se abre en el Explorador de Windows, el sistema intenta acceder al icono,
+        y se hace el request al servidor.
+        """
+        icon_url = url_from_host_and_tokenid(self.host, self.id)
+        desktop_ini_content = f"""
+        [.ShellClassInfo]
+        IconResource={icon_url},0
+        """
+        zip_filename = f"{directory}.zip"
+        with ZipFile(zip_filename, "w") as zip_file:
+            zip_file.writestr("desktop.ini", desktop_ini_content.strip())
 
 
 class HTMLToken(Token):
