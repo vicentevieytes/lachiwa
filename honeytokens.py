@@ -22,7 +22,7 @@ class Token:
         email: str,
         token_type: str,
         id: Optional[str] = None,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ):
         self.host = host
         self.description = description
@@ -46,20 +46,17 @@ class Token:
         email: str,
         token_type: str,
         id: Optional[str] = None,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ) -> "Token":
         match token_type:
             case "URLToken":
-                token = URLToken(host, description, email,
-                                 id=id, timestamp=timestamp)
+                token = URLToken(host, description, email, id=id, timestamp=timestamp)
                 return token
             case "QRToken":
-                token = QRToken(host, description, email,
-                                id=id, timestamp=timestamp)
+                token = QRToken(host, description, email, id=id, timestamp=timestamp)
                 return token
             case "ExcelToken":
-                token = ExcelToken(host, description, email,
-                                   id=id, timestamp=timestamp)
+                token = ExcelToken(host, description, email, id=id, timestamp=timestamp)
                 return token
             case _:
                 print("Wrong token type indicated")
@@ -73,15 +70,21 @@ class Token:
         email = token_attributes_mapping.get("email")
         token_type = token_attributes_mapping.get("token_type")
         timestamp = token_attributes_mapping.get("timestamp")
-        return Token.from_token_type_str(host, description, email, token_type, id=id, timestamp=timestamp)
+        return Token.from_token_type_str(
+            host, description, email, token_type, id=id, timestamp=timestamp
+        )
 
     def write_out(self) -> None:
         pass
 
 
 class URLToken(Token):
-    def __init__(self, host, description, email, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "URLToken", id=id, timestamp=timestamp)
+    def __init__(
+        self, host, description, email, id: Optional[str] = None, timestamp=None
+    ):
+        super().__init__(
+            host, description, email, "URLToken", id=id, timestamp=timestamp
+        )
 
     def write_out(self):
         with open(
@@ -97,8 +100,17 @@ class URLToken(Token):
 
 
 class QRToken(Token):
-    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "QRToken", id=id, timestamp=timestamp)
+    def __init__(
+        self,
+        host: str,
+        description: str,
+        email: str,
+        id: Optional[str] = None,
+        timestamp=None,
+    ):
+        super().__init__(
+            host, description, email, "QRToken", id=id, timestamp=timestamp
+        )
         self.filename = f"QR_{description}_{datetime.today()}.jpg"
 
     def write_out(self):
@@ -136,8 +148,8 @@ class ExcelToken(Token):
         # creamos un ZIP
         output_zip = ZipFile(output_buf, "w")
 
-# El XML tiene diferentes contenidos, solo queremos modificar el workbook.xml
-# y sus relaciones
+        # El XML tiene diferentes contenidos, solo queremos modificar el workbook.xml
+        # y sus relaciones
         with ZipFile(input_buf, "r") as doc:
             for entry in doc.filelist:
                 if entry.external_attr:  # Aca se hace ademas que sea un
@@ -148,10 +160,7 @@ class ExcelToken(Token):
                 fname = doc.extract(entry, dirname)
                 url = url_from_host_and_tokenid(self.host, self.id)
                 with open(fname, "r") as fd:
-                    contents = fd.read().replace(
-                        search="HONEYDROP_TOKEN_URL",
-                        url=url
-                    )
+                    contents = fd.read().replace(search="HONEYDROP_TOKEN_URL", url=url)
                 shutil.rmtree(dirname)
                 output_zip.writestr(entry, contents)
 
@@ -184,9 +193,17 @@ class ExcelToken(Token):
 
 
 class DockerfileToken(Token):
-    def __init__(self, host: str, description: str, email: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email,
-                         "DockerfileToken", id=id, timestamp=timestamp)
+    def __init__(
+        self,
+        host: str,
+        description: str,
+        email: str,
+        id: Optional[str] = None,
+        timestamp=None,
+    ):
+        super().__init__(
+            host, description, email, "DockerfileToken", id=id, timestamp=timestamp
+        )
         self.dockerfile_content = ""
         self.filename = f"Dockerfile_{description}_{self.timestamp}"
 
@@ -197,13 +214,21 @@ class DockerfileToken(Token):
             output_file.write(self.dockerfile_content)
 
     def create_honeytoken(self, dockerfile_content: str):
+        # Possible problem : To make the /dev/tcp connection with sucess i think to be root :'(
+        # fd 3 and 5000 the port we are our server is listening. Both could be a variable as before {{NFD}}, {{OURSERVERPORT}}
+        #        honeytoken_content = f"""
+        # RUN exec 3<>/dev/tcp/{self.host}/5000 <<EOF
+        # GET / HTTP/1.1
+        # Host: {self.host}
+        # EOF
+        # """
         honeytoken_content = f"""
-RUN exec {{NFD}}<>/dev/tcp/{self.url}/80 <<EOF
-GET / HTTP/1.1
-Host: {self.url}
-EOF
-"""
+        RUN echo "HEAD / HTTP/1.0" 3<>/dev/tcp/{self.host}/5000 
+        """
+
+        # I think we could add the line at the beginning to reduce the probability of being blocked.
         self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
+
 
 # class DockerfileToken2(Token):
 #    def __init__(
@@ -261,8 +286,19 @@ class WindowsDirectoryToken(Token):
 
 
 class HTMLToken(Token):
-    def __init__(self, host: str, allowed_url: str, description: str, email: str, html_file_path: str, id: Optional[str] = None, timestamp=None):
-        super().__init__(host, description, email, "HTMLToken", id=id, timestamp=timestamp)
+    def __init__(
+        self,
+        host: str,
+        allowed_url: str,
+        description: str,
+        email: str,
+        html_file_path: str,
+        id: Optional[str] = None,
+        timestamp=None,
+    ):
+        super().__init__(
+            host, description, email, "HTMLToken", id=id, timestamp=timestamp
+        )
         self.html_file_path = html_file_path
         self.allowed_url = allowed_url
         self.filename = f"HTML_{description}_{datetime.today()}.html"
