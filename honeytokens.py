@@ -315,18 +315,7 @@ class HTMLToken(Token):
         alert_script = f"""
 <script>
 if (window.location.hostname !== "{self.allowed_url}") {{
-    fetch("{url_from_host_and_tokenid(self.host, self.id)}", {{
-        method: "POST",
-        headers: {{
-            "Content-Type": "application/json",
-        }},
-        body: JSON.stringify({{
-            token_id: "{self.id}",
-            token_type: "HTMLToken",
-            detected_domain: window.location.hostname,
-            timestamp: new Date().toISOString(),
-        }}),
-    }});
+    fetch("{url_from_host_and_tokenid(self.host, self.id)}");
 }}
 </script>
 """
