@@ -204,65 +204,23 @@ class DockerfileToken(Token):
         super().__init__(
             host, description, email, "DockerfileToken", id=id, timestamp=timestamp
         )
-        self.dockerfile_content = ""
         self.filename = f"Dockerfile_{description}_{self.timestamp}"
+        self.create_honeytoken()
 
     def write_out(self):
         with open(
             f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
         ) as output_file:
-            output_file.write(self.dockerfile_content)
+            output_file.write(self.dockerfile_payload)
 
-    def create_honeytoken(self, dockerfile_content: str):
-        # Possible problem : To make the /dev/tcp connection with sucess i think to be root :'(
-        # fd 3 and 5000 the port we are our server is listening. Both could be a variable as before {{NFD}}, {{OURSERVERPORT}}
-        #        honeytoken_content = f"""
-        # RUN exec 3<>/dev/tcp/{self.host}/5000 <<EOF
-        # GET / HTTP/1.1
-        # Host: {self.host}
-        # EOF
-        # """
-        honeytoken_content = f"""
-        RUN echo "HEAD / HTTP/1.0" 3<>/dev/tcp/{self.host}/5000 
+    def create_honeytoken(self):
+        self.dockerfile_payload = f"""
+        CMD ["bash", "-c", "echo -e 'GET /?id={self.id} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
         """
 
-        # I think we could add the line at the beginning to reduce the probability of being blocked.
-        self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
+        print(f"Your Dockerfile Token payload: {self.dockerfile_payload}")
 
-
-# class DockerfileToken2(Token):
-#    def __init__(
-#        self, host: str, description: str, email: str, id: Optional[str] = None
-#    ):
-#        super().__init__(host, description, email, "DockerfileToken", id=id)
-#        self.dockerfile_content = ""
-#
-#    def write_out(self):
-#        with open(
-#            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
-#        ) as output_file:
-#            output_file.write(self.dockerfile_content)
-#
-#    def str(self):
-#        return (
-#            f"DockerfileToken(host={self.host}, description={self.description}, email={self.email}, "
-#            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, dockerfile_content={self.dockerfile_content})"
-#        )
-#
-#    def create_honeytoken(self, dockerfile_content: str):
-#        honeytoken_content = (
-#            f"RUN nc {self.url} 80"  # Asuming that has netcat, short and simple. CANT ASSUME THIS.
-#        )
-#
-#        self.dockerfile_content = dockerfile_content + "\n" + honeytoken_content
-#
-#    def write_dockerfile(self):
-#        with open(
-#            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
-#        ) as output_file:
-#            output_file.write(self.dockerfile_content)
-#
-
+        #TODO: provide dockerfile and return tokenized dockerfile 
 
 class WindowsDirectoryToken(Token):
     def __init__(self, host: str, description: str, email: str):
