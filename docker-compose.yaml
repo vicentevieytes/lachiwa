@@ -6,11 +6,11 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    #command: redis-server --appendonly yes  # Keep Redis running continuously
+    command: redis-server 
 
   lachiwa_cli:
     build: .
-    image: lachiwa_tokenized_2:latest
+    image: lachiwa
     container_name: lachiwa_cli
     depends_on:
       - redis
