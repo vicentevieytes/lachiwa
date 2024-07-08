@@ -147,19 +147,23 @@ class ExcelToken(Token):
         super().__init__(host, description, email, "ExcelToken")
         self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
         self.write_out(f"honeytokens/{self.filename}")
-        self.check_modified_xml(f"honeytokens/modified_{self.filename}")
+        # self.check_modified_xml(f"honeytokens/{self.filename}")
 
     def check_modified_xml(self, file_path):
         print('Checking modified XML content...')
         old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
         url = url_from_host_and_tokenid(self.host, self.id)
-        with open(file_path, 'rb') as file:  # Open in binary mode
-            content = file.read()
-            old_bytes = old_string.encode('utf-8')
-            new_bytes = url.encode('utf-8')
-            if old_bytes in content:
+        extracted_dir = f"honeytokens/extracted_{self.filename}"
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(extracted_dir)
+
+        styles_path = os.path.join(extracted_dir, 'xl', 'styles.xml')
+        with open(styles_path, 'r', encoding='utf-8') as file:
+            styles_content = file.read()
+            print("the content of the file is: ", styles_content)
+            if old_string in styles_content:
                 print('URL not inserted in the XML content.')
-            elif new_bytes in content:
+            elif url in styles_content:
                 print('URL inserted in the XML content.')
             else:
                 print('URL not found in the XML content.')
@@ -172,11 +176,9 @@ class ExcelToken(Token):
         ws['A1'] = "This is a test"
         ws['A1'].style = 'Title'
         wb.save(filepath)
-
         old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
-        url = url_from_host_and_tokenid(self.host, self.id)
+        url = f'''xmlns="{url_from_host_and_tokenid(self.host, self.id)}"'''
         modified_file = f"honeytokens/modified_{self.filename}"
-
         try:
             shutil.copy(filepath, modified_file)
             extracted_dir = f"honeytokens/extracted_{self.filename}"
@@ -198,7 +200,8 @@ class ExcelToken(Token):
                         zipf.write(file_path, os.path.relpath(
                             file_path, extracted_dir))
 
-            shutil.rmtree(extracted_dir)
+            # Toggle comment to erase the extracted dir
+            # shutil.rmtree(extracted_dir)
 
         except Exception as e:
             print(f"Error modifying zip file: {e}")
