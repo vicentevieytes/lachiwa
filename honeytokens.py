@@ -9,42 +9,81 @@ import nanoid
 from openpyxl import Workbook
 from typing import Optional
 
-from redis_om import HashModel, Field
 
 def url_from_host_and_tokenid(host, id, protocol="http"):
     return f"{protocol}://{host}/?id={id}"
 
 
-class Token(HashModel):
-    host: str
-    description: str
-    email: str
-    token_type: str = Field(index=True)
-    timestamp: datetime = Field(index=True) 
+class Token:
     def __init__(
         self,
-        **kwargs
+        host: str,
+        description: str,
+        email: str,
+        token_type: str,
+        id: Optional[str] = None,
+        timestamp: Optional[datetime] = None,
     ):
-        super().__init__(**kwargs)
-        self.timestamp = datetime.now()
-        self.url = url_from_host_and_tokenid(self.host, self.pk)
+        self.host = host
+        self.description = description
+        self.email = email
+        self.token_type = token_type
+        self.timestamp = timestamp if timestamp is not None else datetime.now()
+        self.id = id if id is not None else nanoid.generate(size=10)
+        self.url = url_from_host_and_tokenid(host, self.id)
 
     def __str__(self):
         return (
             f"Token(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.pk})"
+            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id})"
         )
+
+    @classmethod
+    def from_token_type_str(
+        cls,
+        host: str,
+        description: str,
+        email: str,
+        token_type: str,
+        id: Optional[str] = None,
+        timestamp: Optional[datetime] = None,
+    ) -> "Token":
+        match token_type:
+            case "URLToken":
+                token = URLToken(host, description, email, id=id, timestamp=timestamp)
+                return token
+            case "QRToken":
+                token = QRToken(host, description, email, id=id, timestamp=timestamp)
+                return token
+            case "ExcelToken":
+                token = ExcelToken(host, description, email, id=id, timestamp=timestamp)
+                return token
+            case _:
+                print("Wrong token type indicated")
+                exit(1)
+
+    @classmethod
+    def from_dict(cls, token_attributes_mapping):
+        id = token_attributes_mapping.get("id")
+        host = token_attributes_mapping.get("host")
+        description = token_attributes_mapping.get("description")
+        email = token_attributes_mapping.get("email")
+        token_type = token_attributes_mapping.get("token_type")
+        timestamp = token_attributes_mapping.get("timestamp")
+        return Token.from_token_type_str(
+            host, description, email, token_type, id=id, timestamp=timestamp
+        )
+
     def write_out(self) -> None:
         pass
 
 
 class URLToken(Token):
     def __init__(
-        self, **kwargs
-        ):
-        kwargs.update(token_type="URLToken")
+        self, host, description, email, id: Optional[str] = None, timestamp=None
+    ):
         super().__init__(
-            **kwargs
+            host, description, email, "URLToken", id=id, timestamp=timestamp
         )
 
     def write_out(self):
@@ -56,7 +95,7 @@ class URLToken(Token):
     def __str__(self):
         return (
             f"URLToken(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.pk}, url={self.url})"
+            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, url={self.url})"
         )
 
 
@@ -66,10 +105,11 @@ class QRToken(Token):
         host: str,
         description: str,
         email: str,
+        id: Optional[str] = None,
         timestamp=None,
     ):
         super().__init__(
-            host, description, email, "QRToken",  timestamp=timestamp
+            host, description, email, "QRToken", id=id, timestamp=timestamp
         )
         self.filename = f"QR_{description}_{datetime.today()}.jpg"
 
@@ -118,7 +158,7 @@ class ExcelToken(Token):
                     continue
                 dirname = tempfile.mkdtemp()
                 fname = doc.extract(entry, dirname)
-                url = url_from_host_and_tokenid(self.host, self.pk)
+                url = url_from_host_and_tokenid(self.host, self.id)
                 with open(fname, "r") as fd:
                     contents = fd.read().replace(search="HONEYDROP_TOKEN_URL", url=url)
                 shutil.rmtree(dirname)
@@ -141,7 +181,7 @@ class ExcelToken(Token):
         # vbmodule = wb.api.VBProject.VBComponents.Add(1)
 
         # # escribimos para que se ejecute la url
-        # url = url_from_host_and_tokenid(self.host, self.pk)
+        # url = url_from_host_and_tokenid(self.host, self.id)
         # vbmodule.CodeModule.AddFromString(f"""
         # Private Sub Workbook_Open()
         #     ThisWorkbook.FollowHyperlink "{url}"
@@ -158,10 +198,11 @@ class DockerfileToken(Token):
         host: str,
         description: str,
         email: str,
+        id: Optional[str] = None,
         timestamp=None,
     ):
         super().__init__(
-            host, description, email, "DockerfileToken",  timestamp=timestamp
+            host, description, email, "DockerfileToken", id=id, timestamp=timestamp
         )
         self.filename = f"Dockerfile_{description}_{self.timestamp}"
         self.create_honeytoken()
@@ -174,7 +215,7 @@ class DockerfileToken(Token):
 
     def create_honeytoken(self):
         self.dockerfile_payload = f"""
-        CMD ["bash", "-c", "echo -e 'GET /?id={self.pk} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
+        CMD ["bash", "-c", "echo -e 'GET /?id={self.id} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
         """
 
         print(f"Your Dockerfile Token payload: {self.dockerfile_payload}")
@@ -192,7 +233,7 @@ class WindowsDirectoryToken(Token):
         Cuando el directorio se abre en el Explorador de Windows, el sistema intenta acceder al icono,
         y se hace el request al servidor.
         """
-        icon_url = url_from_host_and_tokenid(self.host, self.pk)
+        icon_url = url_from_host_and_tokenid(self.host, self.id)
         desktop_ini_content = f"""
         [.ShellClassInfo]
         IconResource={icon_url},0
@@ -210,10 +251,11 @@ class HTMLToken(Token):
         description: str,
         email: str,
         html_file_path: str,
+        id: Optional[str] = None,
         timestamp=None,
     ):
         super().__init__(
-            host, description, email, "HTMLToken",  timestamp=timestamp
+            host, description, email, "HTMLToken", id=id, timestamp=timestamp
         )
         self.html_file_path = html_file_path
         self.allowed_url = allowed_url
@@ -231,7 +273,7 @@ class HTMLToken(Token):
         alert_script = f"""
 <script>
 if (window.location.hostname !== "{self.allowed_url}") {{
-    fetch("{url_from_host_and_tokenid(self.host, self.pk)}");
+    fetch("{url_from_host_and_tokenid(self.host, self.id)}");
 }}
 </script>
 """

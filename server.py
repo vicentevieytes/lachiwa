@@ -14,7 +14,7 @@ def token_triggered():
         token = redismanager.fetch_token(token_id)
         if token is None:
             return jsonify({"status": "error", "message": f"{token_id} is not a valid token"}, 400)
-        alert = Alert(token= token, remote_ip = request.remote_addr)
+        alert = Alert(token= token)
         redismanager.store_alert(alert)
         alert.log_alert()
         return jsonify({"status": "success", "token_id": token_id, }), 200

@@ -23,7 +23,7 @@ def create():
 @create.command()
 @common_options
 def urltoken(host, description, email):
-    token = URLToken(host = host, description = description,email=  email)
+    token = URLToken(host, description, email)
     token.write_out()
     store_token(token)
     click.echo(f"Your URLToken: {token.url}")
