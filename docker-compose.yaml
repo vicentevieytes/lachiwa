@@ -36,7 +36,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     ports:
-      - "5000:5000"
+      - "8051:8051"
     command: flask run --host=0.0.0.0 --debug
 
 

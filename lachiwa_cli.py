@@ -42,7 +42,6 @@ def qrtoken(host, description, email):
 @common_options
 def exceltoken(host, description, email):
     token = ExcelToken(host, description, email)
-    token.write_out()
     store_token(token)
     click.echo(f"Your ExcelToken file: {token.filename}")
 
@@ -66,6 +65,7 @@ def htmltoken(host, description, email, file, allowed):
     store_token(token)
     click.echo(f"Your HTMLToken file: {token.filename}")
 
+
 @create.command()
 @common_options
 def windowstoken(host, description, email):
@@ -78,6 +78,7 @@ def windowstoken(host, description, email):
 def get():
     """Create a token."""
     pass
+
 
 @get.command()
 def alerts():

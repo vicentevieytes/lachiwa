@@ -1,14 +1,14 @@
 from datetime import datetime
-from io import BytesIO
+import os
 import shutil
-import tempfile
-from zipfile import ZipFile
 from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
 import nanoid
 from openpyxl import Workbook
 from typing import Optional
-import xlwings as xw
+import shutil
+import zipfile
+import os
 
 
 def url_from_host_and_tokenid(host, id, protocol="http"):
@@ -28,8 +28,8 @@ class Token:
         self.host = host
         self.description = description
         self.email = email
-        self.token_type = token_type
         self.timestamp = timestamp if timestamp is not None else datetime.now()
+        self.token_type = token_type
         self.id = id if id is not None else nanoid.generate(size=10)
         self.url = url_from_host_and_tokenid(host, self.id)
 
@@ -146,58 +146,62 @@ class ExcelToken(Token):
     def __init__(self, host: str, description: str, email: str):
         super().__init__(host, description, email, "ExcelToken")
         self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
-        self.makeToken(f"honeytokens/{self.filename}")
+        self.write_out(f"honeytokens/{self.filename}")
+        self.check_modified_xml(f"honeytokens/modified_{self.filename}")
 
-    def write_out(self, file_name: str):
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            with ZipFile(temp_file, 'w') as zip_file:
-                
-                zip_file.writestr('[Content_Types].xml',
-                                  self.get_content_types_xml())
-                zip_file.writestr('_rels/.rels', self.get_rels_xml())
-                zip_file.writestr('xl/workbook.xml', self.get_workbook_xml())
-                zip_file.writestr('xl/styles.xml', self.get_styles_xml())
-
-        with open(temp_file.name, "rb") as f:
-            input_buf = BytesIO(f.read())
-
-        output_buf = BytesIO()
-        output_zip = ZipFile(output_buf, "w")
-        with ZipFile(input_buf, "r") as doc:
-            for entry in doc.filelist:
-                with doc.open(entry) as file:
-                    content = file.read()
-                    if entry.filename == 'xl/styles.xml':
-                        content = content.decode("utf-8").replace(
-                            '</styleSheet>',
-                            f'<extLst><ext uri="{url_from_host_and_tokenid(
-                                self.host, self.id)}" /></extLst></styleSheet>'
-                        ).encode("utf-8")
-                    output_zip.writestr(entry.filename, content)
-
-        output_zip.close()
-        output_buf.seek(0)
-        with open(file_name, "wb") as f:
-            f.write(output_buf.read())
-        output_buf.close()
-        self.add_vba_macro(file_name)
-
-    def add_vba_macro(self, file_name):
+    def check_modified_xml(self, file_path):
+        print('Checking modified XML content...')
+        old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
         url = url_from_host_and_tokenid(self.host, self.id)
+        with open(file_path, 'rb') as file:  # Open in binary mode
+            content = file.read()
+            old_bytes = old_string.encode('utf-8')
+            new_bytes = url.encode('utf-8')
+            if old_bytes in content:
+                print('URL not inserted in the XML content.')
+            elif new_bytes in content:
+                print('URL inserted in the XML content.')
+            else:
+                print('URL not found in the XML content.')
+            print('Modified XML content checked successfully.')
 
-        wb = xw.Book()
-        vb_module = wb.api.VBProject.VBComponents.Add(1)
-        macro_code = f"""
-        Private Sub Workbook_Open()
-            With CreateObject("MSXML2.ServerXMLHTTP.6.0")
-                .Open "GET", "{url}", False
-                .send
-            End With
-        End Sub
-        """
-        vb_module.CodeModule.AddFromString(macro_code)
-        wb.save(file_name)
-        wb.close()
+    def write_out(self, filepath: str):
+        # Create an initial Excel template using openpyxl
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = "This is a test"
+        ws['A1'].style = 'Title'
+        wb.save(filepath)
+
+        old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+        url = url_from_host_and_tokenid(self.host, self.id)
+        modified_file = f"honeytokens/modified_{self.filename}"
+
+        try:
+            shutil.copy(filepath, modified_file)
+            extracted_dir = f"honeytokens/extracted_{self.filename}"
+            with zipfile.ZipFile(modified_file, 'r') as zip_ref:
+                zip_ref.extractall(extracted_dir)
+
+            styles_path = os.path.join(extracted_dir, 'xl', 'styles.xml')
+            with open(styles_path, 'r', encoding='utf-8') as file:
+                styles_content = file.read()
+            new_styles_content = styles_content.replace(old_string, url)
+            with open(styles_path, 'w', encoding='utf-8') as file:
+                file.write(new_styles_content)
+
+            new_zip_file = f"honeytokens/modified_{self.filename}.xlsx"
+            with zipfile.ZipFile(new_zip_file, 'w') as zipf:
+                for root, _, files in os.walk(extracted_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        zipf.write(file_path, os.path.relpath(
+                            file_path, extracted_dir))
+
+            shutil.rmtree(extracted_dir)
+
+        except Exception as e:
+            print(f"Error modifying zip file: {e}")
 
 
 class DockerfileToken(Token):
