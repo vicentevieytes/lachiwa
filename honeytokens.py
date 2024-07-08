@@ -8,6 +8,7 @@ from qrcode.constants import ERROR_CORRECT_L
 import nanoid
 from openpyxl import Workbook
 from typing import Optional
+import xlwings as xw
 
 
 def url_from_host_and_tokenid(host, id, protocol="http"):
@@ -34,8 +35,10 @@ class Token:
 
     def __str__(self):
         return (
-            f"Token(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id})"
+            f"Token(host={self.host}, description={
+                self.description}, email={self.email}, "
+            f"token_type={self.token_type}, timestamp={
+                self.timestamp}, id={self.id})"
         )
 
     @classmethod
@@ -50,13 +53,16 @@ class Token:
     ) -> "Token":
         match token_type:
             case "URLToken":
-                token = URLToken(host, description, email, id=id, timestamp=timestamp)
+                token = URLToken(host, description, email,
+                                 id=id, timestamp=timestamp)
                 return token
             case "QRToken":
-                token = QRToken(host, description, email, id=id, timestamp=timestamp)
+                token = QRToken(host, description, email,
+                                id=id, timestamp=timestamp)
                 return token
             case "ExcelToken":
-                token = ExcelToken(host, description, email, id=id, timestamp=timestamp)
+                token = ExcelToken(host, description, email,
+                                   id=id, timestamp=timestamp)
                 return token
             case _:
                 print("Wrong token type indicated")
@@ -94,8 +100,10 @@ class URLToken(Token):
 
     def __str__(self):
         return (
-            f"URLToken(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, url={self.url})"
+            f"URLToken(host={self.host}, description={
+                self.description}, email={self.email}, "
+            f"token_type={self.token_type}, timestamp={
+                self.timestamp}, id={self.id}, url={self.url})"
         )
 
 
@@ -140,56 +148,56 @@ class ExcelToken(Token):
         self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
         self.makeToken(f"honeytokens/{self.filename}")
 
-    def makeToken(self, file_name: str):
-        with open(file_name, "rb") as f:
-            input_buf = BytesIO(f.read())
-        output_buf = BytesIO()
-        # un XML es esencialmente un ZIP file (Open XML standard), por eso
-        # creamos un ZIP
-        output_zip = ZipFile(output_buf, "w")
+    def write_out(self, file_name: str):
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            with ZipFile(temp_file, 'w') as zip_file:
+                
+                zip_file.writestr('[Content_Types].xml',
+                                  self.get_content_types_xml())
+                zip_file.writestr('_rels/.rels', self.get_rels_xml())
+                zip_file.writestr('xl/workbook.xml', self.get_workbook_xml())
+                zip_file.writestr('xl/styles.xml', self.get_styles_xml())
 
-        # El XML tiene diferentes contenidos, solo queremos modificar el workbook.xml
-        # y sus relaciones
+        with open(temp_file.name, "rb") as f:
+            input_buf = BytesIO(f.read())
+
+        output_buf = BytesIO()
+        output_zip = ZipFile(output_buf, "w")
         with ZipFile(input_buf, "r") as doc:
             for entry in doc.filelist:
-                if entry.external_attr:  # Aca se hace ademas que sea un
-                    # directory, no se que tan necesario sea, porque no veo
-                    # que se creen directorios
-                    continue
-                dirname = tempfile.mkdtemp()
-                fname = doc.extract(entry, dirname)
-                url = url_from_host_and_tokenid(self.host, self.id)
-                with open(fname, "r") as fd:
-                    contents = fd.read().replace(search="HONEYDROP_TOKEN_URL", url=url)
-                shutil.rmtree(dirname)
-                output_zip.writestr(entry, contents)
+                with doc.open(entry) as file:
+                    content = file.read()
+                    if entry.filename == 'xl/styles.xml':
+                        content = content.decode("utf-8").replace(
+                            '</styleSheet>',
+                            f'<extLst><ext uri="{url_from_host_and_tokenid(
+                                self.host, self.id)}" /></extLst></styleSheet>'
+                        ).encode("utf-8")
+                    output_zip.writestr(entry.filename, content)
 
         output_zip.close()
         output_buf.seek(0)
         with open(file_name, "wb") as f:
             f.write(output_buf.read())
         output_buf.close()
+        self.add_vba_macro(file_name)
 
+    def add_vba_macro(self, file_name):
+        url = url_from_host_and_tokenid(self.host, self.id)
+
+        wb = xw.Book()
+        vb_module = wb.api.VBProject.VBComponents.Add(1)
+        macro_code = f"""
+        Private Sub Workbook_Open()
+            With CreateObject("MSXML2.ServerXMLHTTP.6.0")
+                .Open "GET", "{url}", False
+                .send
+            End With
+        End Sub
         """
-        Supuestamente esta es otra manera de hacerlo, poniendo un pedazo de codigo que se ejecute cuando se abre
-        el archivo, pero no la puedo probar...
-        https://www.xlwings.org
-        """
-        # wb = xw.Book()
-
-        # # Añade el VbModule
-        # vbmodule = wb.api.VBProject.VBComponents.Add(1)
-
-        # # escribimos para que se ejecute la url
-        # url = url_from_host_and_tokenid(self.host, self.id)
-        # vbmodule.CodeModule.AddFromString(f"""
-        # Private Sub Workbook_Open()
-        #     ThisWorkbook.FollowHyperlink "{url}"
-        # End Sub
-        # """)
-
-        # wb.save(file_name)
-        # wb.close()
+        vb_module.CodeModule.AddFromString(macro_code)
+        wb.save(file_name)
+        wb.close()
 
 
 class DockerfileToken(Token):
@@ -223,7 +231,7 @@ class DockerfileToken(Token):
         # EOF
         # """
         honeytoken_content = f"""
-        RUN echo "HEAD / HTTP/1.0" 3<>/dev/tcp/{self.host}/5000 
+        RUN echo "HEAD / HTTP/1.0" 3<>/dev/tcp/{self.host}/5000
         """
 
         # I think we could add the line at the beginning to reduce the probability of being blocked.
