@@ -5,26 +5,27 @@ import tempfile
 from zipfile import ZipFile
 from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
-import nanoid
 from openpyxl import Workbook
 from typing import Optional
 
 from redis_om import HashModel, Field
+from abc import ABC
 
 def url_from_host_and_tokenid(host, id, protocol="http"):
     return f"{protocol}://{host}/?id={id}"
 
 
-class Token(HashModel):
+class BaseTokenModel(HashModel, ABC):
+    class Meta:
+        model_key_prefix ="Token:"
+
+class Token(BaseTokenModel):
     host: str
     description: str
     email: str
-    token_type: str = Field(index=True)
-    timestamp: datetime = Field(index=True) 
-    def __init__(
-        self,
-        **kwargs
-    ):
+    timestamp: Optional[datetime] = Field(index=True)
+    
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.timestamp = datetime.now()
         self.url = url_from_host_and_tokenid(self.host, self.pk)
@@ -38,16 +39,14 @@ class Token(HashModel):
         pass
 
 
-class URLToken(Token):
-    def __init__(
-        self, **kwargs
-        ):
-        kwargs.update(token_type="URLToken")
-        super().__init__(
-            **kwargs
-        )
+class URLToken(Token, BaseTokenModel):
+    token_type: str = Field(default = "URLToken", index = True)
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def write_out(self):
+        self.url = url_from_host_and_tokenid(self.host, self.pk)
         with open(
             f"honeytokens/URL_{self.description}_{self.timestamp}", "w"
         ) as output_file:

@@ -6,11 +6,11 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server 
+    #command: redis-server --appendonly yes  # Keep Redis running continuously
 
   lachiwa_cli:
     build: .
-    image: lachiwa
+    image: lachiwa_tokenized_2:latest
     container_name: lachiwa_cli
     depends_on:
       - redis
@@ -32,8 +32,7 @@ services:
     environment:
       - FLASK_APP=server.py
       - FLASK_ENV=development
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_OM_URL=redis://redis:6379
     ports:
       - "5000:5000"
     command: flask run --host=0.0.0.0 --debug

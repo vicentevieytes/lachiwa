@@ -3,6 +3,7 @@ from datetime import datetime
 import redismanager
 from honeytokens import Token, URLToken, QRToken, ExcelToken
 from alerts import Alert
+import sys
 
 app = Flask(__name__)
 
@@ -12,6 +13,7 @@ def token_triggered():
     if token_id:
         # Log the token trigger event with timestamp
         token = redismanager.fetch_token(token_id)
+        print(token, file=sys.stderr)
         if token is None:
             return jsonify({"status": "error", "message": f"{token_id} is not a valid token"}, 400)
         alert = Alert(token= token, remote_ip = request.remote_addr)

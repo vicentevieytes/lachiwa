@@ -9,8 +9,8 @@ class Alert(HashModel):
     token_description: str
     remote_ip: str | None = Field(index= True)
     
-    def __init__(self,token: Token, remote_ip: str | None):
-        
+    def __init__(self, token: Token, remote_ip: str | None):
+        print(token)
         self.token_id = token.pk
         self.token_description = token.description
         self.token_type = token.token_type
