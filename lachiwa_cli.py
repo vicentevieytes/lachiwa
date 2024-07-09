@@ -61,7 +61,12 @@ def dockertoken(host, description, email):
 @click.option("--file", required=True, help="file path for input html file")
 @click.option("--allowed", required=True, help="The domain where your website should be hosted at")
 def htmltoken(host, description, email, file, allowed):
-    token = HTMLToken(host, allowed, description, email, file)
+    token = HTMLToken(
+        host=host,
+        description =description,
+        email = email,
+        allowed_url = allowed,
+        input_html_path =file)
     token.write_out()
     store_token(token)
     click.echo(f"Your HTMLToken file: {token.filename}")

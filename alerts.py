@@ -1,25 +1,24 @@
 from honeytokens import Token
 from datetime import datetime
 from redis_om import HashModel, Field
+from typing import Optional
 
-class Alert(HashModel):
-    timestamp: datetime = Field(index = True)
-    token_id: str | None = Field(index = True)
-    token_type: str = Field(index = True)
-    token_description: str
-    remote_ip: str | None = Field(index= True)
-    
-    def __init__(self, token: Token, remote_ip: str | None, **kwargs):
-        super().__init__(**kwargs)
-        self.token_id = token.pk
-        self.token_description = token.description
-        self.token_type = token.__class__.__name__
-        self.timestamp = datetime.now()
-        self.remote_ip = remote_ip       
+class HoneytokenAlert(HashModel):
+    token_id: str = Field(index=True)
+    timestamp: Optional[datetime] = Field(index=True)
+    remote_ip: str
+    user_agent: str
 
-    def log_alert(self):
-        with open(f"alerts/alert_log", "a") as alert_log:
-            alert_log.write(f"{self.timestamp} {self.token_type} Token:{self.token_id} Remote_ip:{self.remote_ip} Description: {self.description}\n")
+    def __init__(self, **data):
+        if 'timestamp' not in data:
+            data['timestamp'] = datetime.now()
+        super().__init__(**data)
+
+
+def log_alert(token: Token, alert: HoneytokenAlert):
+    with open(f"alerts/alert_log", "a") as alert_log:
+        alert_log.write(f"Alert_timestamp: {alert.timestamp.isoformat()} Token_type: {token.token_type} Description: {token.description} Creation_timestamp: {token.timestamp.isoformat()} Token_id: {token.pk} Remote_ip: {alert.remote_ip}\n")
+
 
 #TODO: def send_alert_email(self):
 
