@@ -7,7 +7,6 @@ class HoneytokenAlert(HashModel):
     token_id: str = Field(index=True)
     timestamp: Optional[datetime] = Field(index=True)
     remote_ip: str
-    user_agent: str
 
     def __init__(self, **data):
         if 'timestamp' not in data:

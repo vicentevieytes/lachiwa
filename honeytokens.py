@@ -39,11 +39,13 @@ class URLToken(Token):
     token_type: str = Field(default = "URLToken", index = True)
 
     def write_out(self):
-        url = url_from_host_and_tokenid(self.host, self.pk)
         with open(
             f"honeytokens/URL_{self.description}_{self.timestamp}", "w"
         ) as output_file:
-            output_file.write(url)
+            output_file.write(self.url())
+
+    def url(self):
+        return url_from_host_and_tokenid(self.host, self.pk)
 
     def __str__(self):
         return (
