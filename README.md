@@ -12,9 +12,15 @@ Utilizar la CLI:
 ```docker compose run --rm lachiwa_cli create [token_type] [options]```
 
 Ejemplos:
-```docker compose run --rm lachiwa_cli create urltoken --host localhost:5000 --description "url for webhook on email" --email "rbaader@yahoo.com"]```
-```docker compose run --rm lachiwa_cli create qrtoken --host localhost:5000 --description "qr for public wifi" --email "hackerman@gmail.com"]```
-```docker compose run --rm lachiwa_cli create htmltoken --host localhost:5000 --description "company website" --email "pitbull@worldwidemail.com"]```
+```
+docker compose run --rm lachiwa_cli create urltoken --host localhost:5000 --description "url for webhook on email" --email "rbaader@yahoo.com"]
+```
+```
+docker compose run --rm lachiwa_cli create qrtoken --host localhost:5000 --description "qr for public wifi" --email "hackerman@gmail.com"]
+```
+```
+docker compose run --rm lachiwa_cli create htmltoken --host localhost:5000 --description "company website" --email "pitbull@worldwidemail.com"]
+```
 
 
 ## PENDIENTES:
