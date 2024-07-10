@@ -1,12 +1,13 @@
 from datetime import datetime
-from io import BytesIO
+import os
 import shutil
-import tempfile
-from zipfile import ZipFile
 from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
 from openpyxl import Workbook
 from typing import Optional
+import shutil
+import zipfile
+import os
 
 from redis_om import HashModel, Field
 from abc import ABC
@@ -51,7 +52,7 @@ class URLToken(Token):
         return f"URL_{self.description}.txt"
 
     def __str__(self):
-        return (
+        return ( 
             f"URLToken(host={self.host}, description={self.description}, email={self.email}, "
             f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.pk}, url={url_from_host_and_tokenid(self.host, self.pk)})"
         )
@@ -84,61 +85,69 @@ class QRToken(Token):
 
 class ExcelToken(Token):
     token_type:str = Field(default = "ExcelToken", index = True)
+          
+    def __init__(self, host: str, description: str, email: str):
+        super().__init__(host, description, email, "ExcelToken")
+        self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
+        self.write_out(f"honeytokens/{self.filename}")
+        # self.check_modified_xml(f"honeytokens/{self.filename}")
 
-    def filename(self):
-        return f"Excel_{self.description}.xlsx"
+    def check_modified_xml(self, file_path):
+        print('Checking modified XML content...')
+        old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+        url = url_from_host_and_tokenid(self.host, self.id)
+        extracted_dir = f"honeytokens/extracted_{self.filename}"
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(extracted_dir)
 
-    def write_out(self):
-        with open(self.filename(), "rb") as f:
-            input_buf = BytesIO(f.read())
-        output_buf = BytesIO()
-        # un XML es esencialmente un ZIP file (Open XML standard), por eso
-        # creamos un ZIP
-        output_zip = ZipFile(output_buf, "w")
+        styles_path = os.path.join(extracted_dir, 'xl', 'styles.xml')
+        with open(styles_path, 'r', encoding='utf-8') as file:
+            styles_content = file.read()
+            print("the content of the file is: ", styles_content)
+            if old_string in styles_content:
+                print('URL not inserted in the XML content.')
+            elif url in styles_content:
+                print('URL inserted in the XML content.')
+            else:
+                print('URL not found in the XML content.')
+            print('Modified XML content checked successfully.')
 
-        # El XML tiene diferentes contenidos, solo queremos modificar el workbook.xml
-        # y sus relaciones
-        with ZipFile(input_buf, "r") as doc:
-            for entry in doc.filelist:
-                if entry.external_attr:  # Aca se hace ademas que sea un
-                    # directory, no se que tan necesario sea, porque no veo
-                    # que se creen directorios
-                    continue
-                dirname = tempfile.mkdtemp()
-                fname = doc.extract(entry, dirname)
-                url = url_from_host_and_tokenid(self.host, self.pk)
-                with open(fname, "r") as fd:
-                    contents = fd.read().replace(search="HONEYDROP_TOKEN_URL", url=url)
-                shutil.rmtree(dirname)
-                output_zip.writestr(entry, contents)
+    def write_out(self, filepath: str):
+        # Create an initial Excel template using openpyxl
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = "This is a test"
+        ws['A1'].style = 'Title'
+        wb.save(filepath)
+        old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+        url = f'''xmlns="{url_from_host_and_tokenid(self.host, self.id)}"'''
+        modified_file = f"honeytokens/modified_{self.filename}"
+        try:
+            shutil.copy(filepath, modified_file)
+            extracted_dir = f"honeytokens/extracted_{self.filename}"
+            with zipfile.ZipFile(modified_file, 'r') as zip_ref:
+                zip_ref.extractall(extracted_dir)
 
-        output_zip.close()
-        output_buf.seek(0)
-        with open(self.filename(), "wb") as f:
-            f.write(output_buf.read())
-        output_buf.close()
+            styles_path = os.path.join(extracted_dir, 'xl', 'styles.xml')
+            with open(styles_path, 'r', encoding='utf-8') as file:
+                styles_content = file.read()
+            new_styles_content = styles_content.replace(old_string, url)
+            with open(styles_path, 'w', encoding='utf-8') as file:
+                file.write(new_styles_content)
 
-        """
-        Supuestamente esta es otra manera de hacerlo, poniendo un pedazo de codigo que se ejecute cuando se abre
-        el archivo, pero no la puedo probar...
-        https://www.xlwings.org
-        """
-        # wb = xw.Book()
+            new_zip_file = f"honeytokens/modified_{self.filename}.xlsx"
+            with zipfile.ZipFile(new_zip_file, 'w') as zipf:
+                for root, _, files in os.walk(extracted_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        zipf.write(file_path, os.path.relpath(
+                            file_path, extracted_dir))
 
-        # # Añade el VbModule
-        # vbmodule = wb.api.VBProject.VBComponents.Add(1)
+            # Toggle comment to erase the extracted dir
+            # shutil.rmtree(extracted_dir)
 
-        # # escribimos para que se ejecute la url
-        # url = url_from_host_and_tokenid(self.host, self.pk)
-        # vbmodule.CodeModule.AddFromString(f"""
-        # Private Sub Workbook_Open()
-        #     ThisWorkbook.FollowHyperlink "{url}"
-        # End Sub
-        # """)
-
-        # wb.save(file_name)
-        # wb.close()
-
+        except Exception as e:
+            print(f"Error modifying zip file: {e}")
 
 class DockerfileToken(Token):
     token_type:str = Field(default = "DockerfileToken", index = True)
@@ -148,6 +157,7 @@ class DockerfileToken(Token):
         with open(
             f"honeytokens/{self.filename()}", "w"
         ) as output_file:
+
             output_file.write(dockerfile_payload)
         
         print(f"Your Dockerfile Token payload: {dockerfile_payload}")
