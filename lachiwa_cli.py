@@ -23,7 +23,11 @@ def create():
 @create.command()
 @common_options
 def urltoken(host, description, email):
-    token = URLToken(host = host, description = description,email=  email)
+    token = URLToken(
+        host = host,
+        description = description,
+        email = email
+    )
     token.write_out()
     store_token(token)
     click.echo(f"Your URLToken: {token.url()}")
@@ -32,28 +36,39 @@ def urltoken(host, description, email):
 @create.command()
 @common_options
 def qrtoken(host, description, email):
-    token = QRToken(host, description, email)
+    token = QRToken(
+        host = host,
+        description = description,
+        email = email
+    )
     token.write_out()
     store_token(token)
-    click.echo(f"Your QRToken file: {token.filename}")
-
+    click.echo(f"Your QRToken file: {token.filename()}")
 
 @create.command()
 @common_options
 def exceltoken(host, description, email):
-    token = ExcelToken(host, description, email)
+    token = ExcelToken(
+        host = host,
+        description = description,
+        email = email
+    )
     token.write_out()
     store_token(token)
-    click.echo(f"Your ExcelToken file: {token.filename}")
+    click.echo(f"Your ExcelToken file: {token.filename()}")
 
 
 @create.command()
 @common_options
 def dockertoken(host, description, email):
-    token = DockerfileToken(host, description, email)
+    token = DockerfileToken(
+        host = host,
+        description = description,
+        email = email
+    )
     token.write_out()
     store_token(token)
-    click.echo(f"Your DockerfileToken file: {token.filename}")
+    click.echo(f"Your DockerfileToken file: {token.filename()}")
 
 
 @create.command()
@@ -62,21 +77,26 @@ def dockertoken(host, description, email):
 @click.option("--allowed", required=True, help="The domain where your website should be hosted at")
 def htmltoken(host, description, email, file, allowed):
     token = HTMLToken(
-        host=host,
-        description =description,
+        host = host,
+        description = description,
         email = email,
         allowed_url = allowed,
-        input_html_path =file)
+        input_html_path = file)
     token.write_out()
     store_token(token)
-    click.echo(f"Your HTMLToken file: {token.filename}")
+    click.echo(f"Your HTMLToken file: {token.filename()}")
 
 @create.command()
 @common_options
 def windowstoken(host, description, email):
-    token = WindowsDirectoryToken(host, description, email)
+    token = WindowsDirectoryToken(
+        host = host,
+        description = description,
+        email = email
+    ) 
     token.write_out()
-    click.echo(f"Your WindowsToken file: {token.filename}")
+    store_token(token)
+    click.echo(f"Your WindowsToken file: {token.filename()}")
 
 
 @click.group()

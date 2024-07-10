@@ -31,6 +31,9 @@ class Token(HashModel):
             f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.pk})"
         )
 
+    def url(self):
+        return url_from_host_and_tokenid(self.host, self.pk)
+    
     def write_out(self) -> None:
         pass
 
@@ -40,12 +43,12 @@ class URLToken(Token):
 
     def write_out(self):
         with open(
-            f"honeytokens/URL_{self.description}_{self.timestamp}", "w"
+            f"honeytokens/URL_{self.description}", "w"
         ) as output_file:
             output_file.write(self.url())
 
-    def url(self):
-        return url_from_host_and_tokenid(self.host, self.pk)
+    def filename(self):
+        return f"URL_{self.description}.txt"
 
     def __str__(self):
         return (
@@ -58,7 +61,7 @@ class QRToken(Token):
     token_type:str = Field(default = "QRToken", index = True)
 
     def write_out(self):
-        self.create_qr_code(f"honeytokens/QR_{self.description}_{self.timestamp}.jpg")
+        self.create_qr_code(f"honeytokens/{self.filename()}")
 
     def create_qr_code(self, file_name: str):
         # Create a QR code object
@@ -69,23 +72,24 @@ class QRToken(Token):
             border=4,
         )
         # Add data to the QR code
-        qr.add_data(self.url)
+        qr.add_data(self.url())
         qr.make(fit=True)
         # Create an image from the QR code object
         img = qr.make_image(fill_color="black", back_color="white")
         # Save the image to a file
         img.save(file_name)
 
+    def filename(self):
+        return f"QR_{self.description}.jpg"
 
 class ExcelToken(Token):
     token_type:str = Field(default = "ExcelToken", index = True)
 
-    def __init__(self, host: str, description: str, email: str):
-        filename = f"Excel_{description}_{datetime.today()}.xlsx"
-        self.makeToken(f"honeytokens/{filename}")
+    def filename(self):
+        return f"Excel_{self.description}.xlsx"
 
-    def makeToken(self, file_name: str):
-        with open(file_name, "rb") as f:
+    def write_out(self):
+        with open(self.filename(), "rb") as f:
             input_buf = BytesIO(f.read())
         output_buf = BytesIO()
         # un XML es esencialmente un ZIP file (Open XML standard), por eso
@@ -110,7 +114,7 @@ class ExcelToken(Token):
 
         output_zip.close()
         output_buf.seek(0)
-        with open(file_name, "wb") as f:
+        with open(self.filename(), "wb") as f:
             f.write(output_buf.read())
         output_buf.close()
 
@@ -141,9 +145,8 @@ class DockerfileToken(Token):
 
     def write_out(self):
         dockerfile_payload = self.get_dockerfile_payload()
-        filename = f"Dockerfile_{self.description}_{self.timestamp}"
         with open(
-            filename, "w"
+            f"honeytokens/{self.filename()}", "w"
         ) as output_file:
             output_file.write(dockerfile_payload)
         
@@ -151,10 +154,12 @@ class DockerfileToken(Token):
 
     def get_dockerfile_payload(self):
         payload = f"""
-        CMD ["bash", "-c", "echo -e 'GET /?id={self.pk} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
-        """
+CMD ["bash", "-c", "echo -e 'GET /?id={self.pk} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
+"""
         return payload
-
+    
+    def filename(self):
+        return f"Dockerfile_{self.description}.txt"
 
 class WindowsDirectoryToken(Token):
     token_type:str = Field(default = "WindowsDirectoryToken", index = True)
@@ -165,16 +170,17 @@ class WindowsDirectoryToken(Token):
         Cuando el directorio se abre en el Explorador de Windows, el sistema intenta acceder al icono,
         y se hace el request al servidor.
         """
-        directory = f"WindowsDirectory_{self.description}_{datetime.today()}"
+
         icon_url = url_from_host_and_tokenid(self.host, self.pk)
         desktop_ini_content = f"""
         [.ShellClassInfo]
         IconResource={icon_url},0
         """
-        zip_filename = f"{directory}.zip"
-        with ZipFile(zip_filename, "w") as zip_file:
+        with ZipFile(self.filename(), "w") as zip_file:
             zip_file.writestr("desktop.ini", desktop_ini_content.strip())
 
+    def filename(self):
+        return f"honeytokens/WindowsDirectory_{self.description}.zip"
 
 class HTMLToken(Token):
     token_type:str = Field(default = "HTMLToken", index = True)
@@ -182,9 +188,8 @@ class HTMLToken(Token):
     input_html_path: str
 
     def write_out(self):
-        filename = f"HTML_{self.description}_{datetime.today()}.html"
         tokenized_html = self.tokenize_html(self.input_html_path)
-        with open(f"honeytokens/{filename}", "w") as html_file:
+        with open(f"honeytokens/{self.filename()}", "w") as html_file:
             html_file.write(tokenized_html)
 
     def tokenize_html(self, html_file_path: str) -> str:
@@ -199,3 +204,7 @@ if (window.location.hostname !== "{self.allowed_url}") {{
 </script>
 """
         return html_content + alert_script
+
+    def filename(self):
+        return f"HTML_{self.description}.html"
+

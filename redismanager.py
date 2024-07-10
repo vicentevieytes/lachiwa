@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from honeytokens import Token, URLToken
+from honeytokens import *
 from alerts import HoneytokenAlert
 from typing import Awaitable, Union, Optional
 from redis_om import get_redis_connection, NotFoundError
