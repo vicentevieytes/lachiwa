@@ -5,116 +5,63 @@ import tempfile
 from zipfile import ZipFile
 from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
-import nanoid
 from openpyxl import Workbook
 from typing import Optional
 
+from redis_om import HashModel, Field
+from abc import ABC
 
 def url_from_host_and_tokenid(host, id, protocol="http"):
     return f"{protocol}://{host}/?id={id}"
 
+class Token(HashModel):
+    host: str
+    description: str
+    email: str
+    timestamp: Optional[datetime] = Field(index=True)
 
-class Token:
-    def __init__(
-        self,
-        host: str,
-        description: str,
-        email: str,
-        token_type: str,
-        id: Optional[str] = None,
-        timestamp: Optional[datetime] = None,
-    ):
-        self.host = host
-        self.description = description
-        self.email = email
-        self.token_type = token_type
-        self.timestamp = timestamp if timestamp is not None else datetime.now()
-        self.id = id if id is not None else nanoid.generate(size=10)
-        self.url = url_from_host_and_tokenid(host, self.id)
+    def __init__(self, **data):
+        if 'timestamp' not in data:
+            data['timestamp'] = datetime.now()
+        super().__init__(**data)
 
     def __str__(self):
         return (
             f"Token(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id})"
+            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.pk})"
         )
 
-    @classmethod
-    def from_token_type_str(
-        cls,
-        host: str,
-        description: str,
-        email: str,
-        token_type: str,
-        id: Optional[str] = None,
-        timestamp: Optional[datetime] = None,
-    ) -> "Token":
-        match token_type:
-            case "URLToken":
-                token = URLToken(host, description, email, id=id, timestamp=timestamp)
-                return token
-            case "QRToken":
-                token = QRToken(host, description, email, id=id, timestamp=timestamp)
-                return token
-            case "ExcelToken":
-                token = ExcelToken(host, description, email, id=id, timestamp=timestamp)
-                return token
-            case _:
-                print("Wrong token type indicated")
-                exit(1)
-
-    @classmethod
-    def from_dict(cls, token_attributes_mapping):
-        id = token_attributes_mapping.get("id")
-        host = token_attributes_mapping.get("host")
-        description = token_attributes_mapping.get("description")
-        email = token_attributes_mapping.get("email")
-        token_type = token_attributes_mapping.get("token_type")
-        timestamp = token_attributes_mapping.get("timestamp")
-        return Token.from_token_type_str(
-            host, description, email, token_type, id=id, timestamp=timestamp
-        )
-
+    def url(self):
+        return url_from_host_and_tokenid(self.host, self.pk)
+    
     def write_out(self) -> None:
         pass
 
 
 class URLToken(Token):
-    def __init__(
-        self, host, description, email, id: Optional[str] = None, timestamp=None
-    ):
-        super().__init__(
-            host, description, email, "URLToken", id=id, timestamp=timestamp
-        )
+    token_type: str = Field(default = "URLToken", index = True)
 
     def write_out(self):
         with open(
-            f"honeytokens/URL_{self.description}_{self.timestamp}", "w"
+            f"honeytokens/URL_{self.description}", "w"
         ) as output_file:
-            output_file.write(self.url)
+            output_file.write(self.url())
+
+    def filename(self):
+        return f"URL_{self.description}.txt"
 
     def __str__(self):
         return (
             f"URLToken(host={self.host}, description={self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.id}, url={self.url})"
+            f"token_type={self.token_type}, timestamp={self.timestamp}, id={self.pk}, url={url_from_host_and_tokenid(self.host, self.pk)})"
         )
 
 
 class QRToken(Token):
-    def __init__(
-        self,
-        host: str,
-        description: str,
-        email: str,
-        id: Optional[str] = None,
-        timestamp=None,
-    ):
-        super().__init__(
-            host, description, email, "QRToken", id=id, timestamp=timestamp
-        )
-        self.filename = f"QR_{description}_{datetime.today()}.jpg"
+    token_type:str = Field(default = "QRToken", index = True)
 
     def write_out(self):
-        self.create_qr_code(f"honeytokens/{self.filename}")
+        self.create_qr_code(f"honeytokens/{self.filename()}")
 
     def create_qr_code(self, file_name: str):
         # Create a QR code object
@@ -125,23 +72,24 @@ class QRToken(Token):
             border=4,
         )
         # Add data to the QR code
-        qr.add_data(self.url)
+        qr.add_data(self.url())
         qr.make(fit=True)
         # Create an image from the QR code object
         img = qr.make_image(fill_color="black", back_color="white")
         # Save the image to a file
         img.save(file_name)
 
+    def filename(self):
+        return f"QR_{self.description}.jpg"
 
 class ExcelToken(Token):
+    token_type:str = Field(default = "ExcelToken", index = True)
 
-    def __init__(self, host: str, description: str, email: str):
-        super().__init__(host, description, email, "ExcelToken")
-        self.filename = f"Excel_{description}_{datetime.today()}.xlsx"
-        self.makeToken(f"honeytokens/{self.filename}")
+    def filename(self):
+        return f"Excel_{self.description}.xlsx"
 
-    def makeToken(self, file_name: str):
-        with open(file_name, "rb") as f:
+    def write_out(self):
+        with open(self.filename(), "rb") as f:
             input_buf = BytesIO(f.read())
         output_buf = BytesIO()
         # un XML es esencialmente un ZIP file (Open XML standard), por eso
@@ -158,7 +106,7 @@ class ExcelToken(Token):
                     continue
                 dirname = tempfile.mkdtemp()
                 fname = doc.extract(entry, dirname)
-                url = url_from_host_and_tokenid(self.host, self.id)
+                url = url_from_host_and_tokenid(self.host, self.pk)
                 with open(fname, "r") as fd:
                     contents = fd.read().replace(search="HONEYDROP_TOKEN_URL", url=url)
                 shutil.rmtree(dirname)
@@ -166,7 +114,7 @@ class ExcelToken(Token):
 
         output_zip.close()
         output_buf.seek(0)
-        with open(file_name, "wb") as f:
+        with open(self.filename(), "wb") as f:
             f.write(output_buf.read())
         output_buf.close()
 
@@ -181,7 +129,7 @@ class ExcelToken(Token):
         # vbmodule = wb.api.VBProject.VBComponents.Add(1)
 
         # # escribimos para que se ejecute la url
-        # url = url_from_host_and_tokenid(self.host, self.id)
+        # url = url_from_host_and_tokenid(self.host, self.pk)
         # vbmodule.CodeModule.AddFromString(f"""
         # Private Sub Workbook_Open()
         #     ThisWorkbook.FollowHyperlink "{url}"
@@ -193,39 +141,28 @@ class ExcelToken(Token):
 
 
 class DockerfileToken(Token):
-    def __init__(
-        self,
-        host: str,
-        description: str,
-        email: str,
-        id: Optional[str] = None,
-        timestamp=None,
-    ):
-        super().__init__(
-            host, description, email, "DockerfileToken", id=id, timestamp=timestamp
-        )
-        self.filename = f"Dockerfile_{description}_{self.timestamp}"
-        self.create_honeytoken()
+    token_type:str = Field(default = "DockerfileToken", index = True)
 
     def write_out(self):
+        dockerfile_payload = self.get_dockerfile_payload()
         with open(
-            f"honeytokens/Dockerfile{self.description}{self.timestamp}.txt", "w"
+            f"honeytokens/{self.filename()}", "w"
         ) as output_file:
-            output_file.write(self.dockerfile_payload)
+            output_file.write(dockerfile_payload)
+        
+        print(f"Your Dockerfile Token payload: {dockerfile_payload}")
 
-    def create_honeytoken(self):
-        self.dockerfile_payload = f"""
-        CMD ["bash", "-c", "echo -e 'GET /?id={self.id} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
-        """
-
-        print(f"Your Dockerfile Token payload: {self.dockerfile_payload}")
-
-        #TODO: provide dockerfile and return tokenized dockerfile 
+    def get_dockerfile_payload(self):
+        payload = f"""
+CMD ["bash", "-c", "echo -e 'GET /?id={self.pk} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
+"""
+        return payload
+    
+    def filename(self):
+        return f"Dockerfile_{self.description}.txt"
 
 class WindowsDirectoryToken(Token):
-    def __init__(self, host: str, description: str, email: str):
-        super().__init__(host, description, email, "WindowsDirectoryToken")
-        self.directory = f"WindowsDirectory_{description}_{datetime.today()}"
+    token_type:str = Field(default = "WindowsDirectoryToken", index = True)
 
     def write_out(self):
         """
@@ -233,37 +170,26 @@ class WindowsDirectoryToken(Token):
         Cuando el directorio se abre en el Explorador de Windows, el sistema intenta acceder al icono,
         y se hace el request al servidor.
         """
-        icon_url = url_from_host_and_tokenid(self.host, self.id)
+
+        icon_url = url_from_host_and_tokenid(self.host, self.pk)
         desktop_ini_content = f"""
         [.ShellClassInfo]
         IconResource={icon_url},0
         """
-        zip_filename = f"{self.directory}.zip"
-        with ZipFile(zip_filename, "w") as zip_file:
+        with ZipFile(self.filename(), "w") as zip_file:
             zip_file.writestr("desktop.ini", desktop_ini_content.strip())
 
+    def filename(self):
+        return f"honeytokens/WindowsDirectory_{self.description}.zip"
 
 class HTMLToken(Token):
-    def __init__(
-        self,
-        host: str,
-        allowed_url: str,
-        description: str,
-        email: str,
-        html_file_path: str,
-        id: Optional[str] = None,
-        timestamp=None,
-    ):
-        super().__init__(
-            host, description, email, "HTMLToken", id=id, timestamp=timestamp
-        )
-        self.html_file_path = html_file_path
-        self.allowed_url = allowed_url
-        self.filename = f"HTML_{description}_{datetime.today()}.html"
+    token_type:str = Field(default = "HTMLToken", index = True)
+    allowed_url: str
+    input_html_path: str
 
     def write_out(self):
-        tokenized_html = self.tokenize_html(self.html_file_path)
-        with open(f"honeytokens/{self.filename}", "w") as html_file:
+        tokenized_html = self.tokenize_html(self.input_html_path)
+        with open(f"honeytokens/{self.filename()}", "w") as html_file:
             html_file.write(tokenized_html)
 
     def tokenize_html(self, html_file_path: str) -> str:
@@ -273,8 +199,12 @@ class HTMLToken(Token):
         alert_script = f"""
 <script>
 if (window.location.hostname !== "{self.allowed_url}") {{
-    fetch("{url_from_host_and_tokenid(self.host, self.id)}");
+    fetch("{url_from_host_and_tokenid(self.host, self.pk)}");
 }}
 </script>
 """
         return html_content + alert_script
+
+    def filename(self):
+        return f"HTML_{self.description}.html"
+
