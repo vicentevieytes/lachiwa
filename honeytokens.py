@@ -127,7 +127,7 @@ class ExcelToken(Token):
 
          
     def filename(self):
-        return f"Excel_{self.description}_{datetime.today()}.xlsx"
+        return f"Excel_{self.description}.xlsx"
 
     def check_modified_xml(self, file_path):
         print('Checking modified XML content...')
