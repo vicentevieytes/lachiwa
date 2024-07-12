@@ -34,7 +34,7 @@ services:
       - FLASK_ENV=development
       - REDIS_OM_URL=redis://redis:6379
     ports:
-      - "5000:5000"
+      - "8351:8351"
     command: flask run --host=0.0.0.0 --debug
 
 
