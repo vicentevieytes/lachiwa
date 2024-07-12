@@ -107,6 +107,7 @@ class ExcelToken(Token):
             shutil.copy(filepath, modified_file)
             extracted_dir=f"honeytokens/extracted_{self.filename()}"
             with zipfile.ZipFile(filepath, 'r') as zip_ref:
+
                 zip_ref.extractall(extracted_dir)
 
             styles_path=os.path.join(
@@ -118,8 +119,8 @@ class ExcelToken(Token):
             new_styles_content=styles_content.replace(old_string, url)
             with open(styles_path, 'w', encoding='utf-8') as file:
                 file.write(new_styles_content)
-
             new_zip_file=f"honeytokens/modified_{self.filename()}"
+
             with zipfile.ZipFile(new_zip_file, 'w') as zipf:
                 for root, _, files in os.walk(extracted_dir):
                     for file in files:
