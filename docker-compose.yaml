@@ -17,7 +17,7 @@ services:
     volumes:
       - ./honeytokens:/usr/src/app/honeytokens
     environment:
-      - REDIS_HOST=redis
+      - REDIS_OM_URL=redis://redis:6379
       - REDIS_PORT=6379
     entrypoint: ["python", "/usr/src/app/lachiwa_cli.py"]
     
