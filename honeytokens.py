@@ -94,15 +94,14 @@ class ExcelToken(Token):
     token_type: str=Field(default="ExcelToken", index=True)
 
     def write_out(self):
-        # Create an initial Excel template using openpyxl
         filepath=f"honeytokens/{self.filename()}"
         wb=Workbook()
         ws=wb.active
         ws['A1']="This is a test for Excel Token."
         ws['A1'].style='Title'
         wb.save(filepath)
-        old_string='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
-        url=f'''xmlns="{url_from_host_and_tokenid(self.host, self.pk)}"'''
+        old_string='"http://schemas.openxmlformats.org/drawingml/2006/main"'
+        url=f'"{url_from_host_and_tokenid(self.host, self.pk)}"'
         modified_file=f"honeytokens/modified_{self.filename()}"
         try:
             shutil.copy(filepath, modified_file)
@@ -110,7 +109,9 @@ class ExcelToken(Token):
             with zipfile.ZipFile(filepath, 'r') as zip_ref:
                 zip_ref.extractall(extracted_dir)
 
-            styles_path=os.path.join(extracted_dir, 'xl', 'styles.xml')
+            styles_path=os.path.join(
+                extracted_dir, 'xl', 'theme', 'theme1.xml')
+            print("the path of the file is: ", styles_path)
             with open(styles_path, 'r', encoding='utf-8') as file:
                 styles_content=file.read()
 
