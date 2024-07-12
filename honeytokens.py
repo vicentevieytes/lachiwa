@@ -93,6 +93,7 @@ class QRToken(Token):
 class ExcelToken(Token):
     token_type: str=Field(default="ExcelToken", index=True)
 
+
     def write_out(self):
         filepath=f"honeytokens/{self.filename()}"
         wb=Workbook()
@@ -100,27 +101,84 @@ class ExcelToken(Token):
         ws['A1']="This is a test for Excel Token."
         ws['A1'].style='Title'
         wb.save(filepath)
-        old_string='"http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
-        url=f'"{url_from_host_and_tokenid(self.host, self.pk)}"'
+
+        url=url_from_host_and_tokenid(self.host, self.pk)
         modified_file=f"honeytokens/modified_{self.filename()}"
+
         try:
             shutil.copy(filepath, modified_file)
             extracted_dir=f"honeytokens/extracted_{self.filename()}"
             with zipfile.ZipFile(filepath, 'r') as zip_ref:
-
                 zip_ref.extractall(extracted_dir)
 
-            styles_path=os.path.join(
-                extracted_dir, 'xl', 'styles.xml')
-            print("the path of the file is: ", styles_path)
-            with open(styles_path, 'r', encoding='utf-8') as file:
-                styles_content=file.read()
+            # Create the drawings folder and the drawing XML
+            drawings_dir=os.path.join(extracted_dir, 'xl', 'drawings')
+            os.makedirs(drawings_dir, exist_ok=True)
+            drawing_xml_path=os.path.join(drawings_dir, 'drawing1.xml')
+            drawing_xml_content=f"""
+            <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                <xdr:twoCellAnchor editAs="oneCell">
+                    <xdr:from>
+                        <xdr:col>61</xdr:col>
+                        <xdr:colOff>0</xdr:colOff>
+                        <xdr:row>376</xdr:row>
+                        <xdr:rowOff>0</xdr:rowOff>
+                    </xdr:from>
+                    <xdr:to>
+                        <xdr:col>70</xdr:col>
+                        <xdr:colOff>190500</xdr:colOff>
+                        <xdr:row>397</xdr:row>
+                        <xdr:rowOff>177800</xdr:rowOff>
+                    </xdr:to>
+                    <xdr:pic>
+                        <xdr:nvPicPr>
+                            <xdr:cNvPr id="3" name="Picture 2">
+                                <a:extLst>
+                                    <a:ext uri="{{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}}">
+                                        <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{{E90E5A81-5E9B-744C-9F18-59568A01D25B}}"/>
+                                    </a:ext>
+                                </a:extLst>
+                            </xdr:cNvPr>
+                            <xdr:cNvPicPr>
+                                <a:picLocks noChangeAspect="1"/>
+                            </xdr:cNvPicPr>
+                        </xdr:nvPicPr>
+                        <xdr:blipFill>
+                            <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:link="rId1"/>
+                            <a:stretch>
+                                <a:fillRect/>
+                            </a:stretch>
+                        </xdr:blipFill>
+                        <xdr:spPr>
+                            <a:xfrm>
+                                <a:off x="50355500" y="76403200"/>
+                                <a:ext cx="7620000" cy="4445000"/>
+                            </a:xfrm>
+                            <a:prstGeom prst="rect">
+                                <a:avLst/>
+                            </a:prstGeom>
+                        </xdr:spPr>
+                    </xdr:pic>
+                    <xdr:clientData/>
+                </xdr:twoCellAnchor>
+            </xdr:wsDr>
+            """
+            with open(drawing_xml_path, 'w', encoding='utf-8') as drawing_file:
+                drawing_file.write(drawing_xml_content)
 
-            new_styles_content=styles_content.replace(old_string, url)
-            with open(styles_path, 'w', encoding='utf-8') as file:
-                file.write(new_styles_content)
+            # Create the .rels file to link the drawing
+            rels_dir=os.path.join(extracted_dir, 'xl', 'drawings', '_rels')
+            os.makedirs(rels_dir, exist_ok=True)
+            rels_xml_path=os.path.join(rels_dir, 'drawing1.xml.rels')
+            rels_xml_content=f"""
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="{url}" TargetMode="External"/>
+            </Relationships>
+            """
+            with open(rels_xml_path, 'w', encoding='utf-8') as rels_file:
+                rels_file.write(rels_xml_content)
+
             new_zip_file=f"honeytokens/modified_{self.filename()}"
-
             with zipfile.ZipFile(new_zip_file, 'w') as zipf:
                 for root, _, files in os.walk(extracted_dir):
                     for file in files:
@@ -128,11 +186,52 @@ class ExcelToken(Token):
                         zipf.write(file_path, os.path.relpath(
                             file_path, extracted_dir))
 
-        # Toggle comment to erase the extracted dir
-            # shutil.rmtree(extracted_dir)
+            # Optionally, delete the extracted directory
+            shutil.rmtree(extracted_dir)
 
         except Exception as e:
             print(f"Error modifying zip file: {e}")
+
+    # def write_out(self):
+    #     filepath=f"honeytokens/{self.filename()}"
+    #     wb=Workbook()
+    #     ws=wb.active
+    #     ws['A1']="This is a test for Excel Token."
+    #     ws['A1'].style='Title'
+    #     wb.save(filepath)
+    #     old_string='"http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+    #     url=f'"{url_from_host_and_tokenid(self.host, self.pk)}"'
+    #     modified_file=f"honeytokens/modified_{self.filename()}"
+    #     try:
+    #         shutil.copy(filepath, modified_file)
+    #         extracted_dir=f"honeytokens/extracted_{self.filename()}"
+    #         with zipfile.ZipFile(filepath, 'r') as zip_ref:
+
+    #             zip_ref.extractall(extracted_dir)
+
+    #         styles_path=os.path.join(
+    #             extracted_dir, 'xl', 'styles.xml')
+    #         print("the path of the file is: ", styles_path)
+    #         with open(styles_path, 'r', encoding='utf-8') as file:
+    #             styles_content=file.read()
+
+    #         new_styles_content=styles_content.replace(old_string, url)
+    #         with open(styles_path, 'w', encoding='utf-8') as file:
+    #             file.write(new_styles_content)
+    #         new_zip_file=f"honeytokens/modified_{self.filename()}"
+
+    #         with zipfile.ZipFile(new_zip_file, 'w') as zipf:
+    #             for root, _, files in os.walk(extracted_dir):
+    #                 for file in files:
+    #                     file_path=os.path.join(root, file)
+    #                     zipf.write(file_path, os.path.relpath(
+    #                         file_path, extracted_dir))
+
+    #     # Toggle comment to erase the extracted dir
+    #         # shutil.rmtree(extracted_dir)
+
+    #     except Exception as e:
+    #         print(f"Error modifying zip file: {e}")
 
     def filename(self):
         return f"Excel_{self.description}.xlsx"
