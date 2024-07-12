@@ -100,7 +100,7 @@ class ExcelToken(Token):
         ws['A1']="This is a test for Excel Token."
         ws['A1'].style='Title'
         wb.save(filepath)
-        old_string='"http://schemas.openxmlformats.org/drawingml/2006/main"'
+        old_string='"http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
         url=f'"{url_from_host_and_tokenid(self.host, self.pk)}"'
         modified_file=f"honeytokens/modified_{self.filename()}"
         try:
@@ -110,7 +110,7 @@ class ExcelToken(Token):
                 zip_ref.extractall(extracted_dir)
 
             styles_path=os.path.join(
-                extracted_dir, 'xl', 'theme', 'theme1.xml')
+                extracted_dir, 'xl', 'styles.xml')
             print("the path of the file is: ", styles_path)
             with open(styles_path, 'r', encoding='utf-8') as file:
                 styles_content=file.read()
