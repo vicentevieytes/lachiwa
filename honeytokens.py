@@ -94,6 +94,7 @@ class ExcelToken(Token):
     token_type: str=Field(default="ExcelToken", index=True)
 
 
+
     def write_out(self):
         filepath=f"honeytokens/{self.filename()}"
         wb=Workbook()
@@ -178,6 +179,19 @@ class ExcelToken(Token):
             with open(rels_xml_path, 'w', encoding='utf-8') as rels_file:
                 rels_file.write(rels_xml_content)
 
+            # Create the sheet1.xml.rels file to link the drawing to the worksheet
+            sheet_rels_dir=os.path.join(
+                extracted_dir, 'xl', 'worksheets', '_rels')
+            os.makedirs(sheet_rels_dir, exist_ok=True)
+            sheet_rels_xml_path=os.path.join(sheet_rels_dir, 'sheet1.xml.rels')
+            sheet_rels_xml_content="""
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
+            </Relationships>
+            """
+            with open(sheet_rels_xml_path, 'w', encoding='utf-8') as sheet_rels_file:
+                sheet_rels_file.write(sheet_rels_xml_content)
+
             new_zip_file=f"honeytokens/modified_{self.filename()}"
             with zipfile.ZipFile(new_zip_file, 'w') as zipf:
                 for root, _, files in os.walk(extracted_dir):
@@ -191,7 +205,6 @@ class ExcelToken(Token):
 
         except Exception as e:
             print(f"Error modifying zip file: {e}")
-
     # def write_out(self):
     #     filepath=f"honeytokens/{self.filename()}"
     #     wb=Workbook()
