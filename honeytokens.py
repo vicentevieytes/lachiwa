@@ -65,14 +65,14 @@ class URLToken(Token):
 
 
 class QRToken(Token):
-    token_type: str=Field(default="QRToken", index=True)
+    token_type: str = Field(default="QRToken", index=True)
 
     def write_out(self):
         self.create_qr_code(f"honeytokens/{self.filename()}")
 
     def create_qr_code(self, file_name: str):
         # Create a QR code object
-        qr=QRCode(
+        qr = QRCode(
             version=1,
             error_correction=ERROR_CORRECT_L,
             box_size=10,
@@ -82,7 +82,7 @@ class QRToken(Token):
         qr.add_data(self.url())
         qr.make(fit=True)
         # Create an image from the QR code object
-        img=qr.make_image(fill_color="black", back_color="white")
+        img = qr.make_image(fill_color="black", back_color="white")
         # Save the image to a file
         img.save(file_name)
 
@@ -91,38 +91,72 @@ class QRToken(Token):
 
 
 class ExcelToken(Token):
-    token_type: str=Field(default="ExcelToken", index=True)
+    token_type: str = Field(default="ExcelToken", index=True)
 
+    # def write_out(self):
+    #     # Create an initial Excel template using openpyxl
+    #     filepath = f"honeytokens/{self.filename()}"
+    #     wb = Workbook()
+    #     ws = wb.active
+    #     ws['A1'] = "This is a test for Excel Token."
+    #     ws['A1'].style = 'Title'
+    #     wb.save(filepath)
+    #     old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+    #     url = f'''xmlns="http://canarytokens.com/feedback/terms/xbjoqkzhiy9d3z1xcywh3ffng/contact.php"'''
+    #     modified_file = f"honeytokens/modified_{self.filename()}"
+    #     try:
+    #         shutil.copy(filepath, modified_file)
+    #         extracted_dir = f"honeytokens/extracted_{self.filename()}"
+    #         with zipfile.ZipFile(filepath, 'r') as zip_ref:
+    #             zip_ref.extractall(extracted_dir)
 
+    #         styles_path = os.path.join(extracted_dir, 'xl', 'styles.xml')
+    #         with open(styles_path, 'r', encoding='utf-8') as file:
+    #             styles_content = file.read()
+
+    #         new_styles_content = styles_content.replace(old_string, url)
+    #         with open(styles_path, 'w', encoding='utf-8') as file:
+    #             file.write(new_styles_content)
+
+    #         new_zip_file = f"honeytokens/modified_{self.filename()}"
+    #         with zipfile.ZipFile(new_zip_file, 'w') as zipf:
+    #             for root, _, files in os.walk(extracted_dir):
+    #                 for file in files:
+    #                     file_path = os.path.join(root, file)
+    #                     zipf.write(file_path, os.path.relpath(
+    #                         file_path, extracted_dir))
+    #     except Exception as e:
+    #         print(f"Error modifying zip file: {e}")
 
     def write_out(self):
-        filepath=f"honeytokens/{self.filename()}"
-        template=f"templates/template.xlsx"
+        filepath = f"honeytokens/{self.filename()}"
+        template = f"templates/template.xlsx"
         shutil.copy(template, filepath)
-        url=url_from_host_and_tokenid(self.host, self.pk)
+        url = url_from_host_and_tokenid(self.host, self.pk)
+        print(f"URL: {url_from_host_and_tokenid(self.host, self.pk)}")
+        # url = "http://canarytokens.com/feedback/terms/xbjoqkzhiy9d3z1xcywh3ffng/contact.php"
 
         try:
-            extracted_dir=f"honeytokens/extracted"
+            extracted_dir = f"honeytokens/extracted"
             with zipfile.ZipFile(filepath, 'r') as zip_ref:
                 zip_ref.extractall(extracted_dir)
-            rels_dir=os.path.join(extracted_dir, 'xl',
-                                  'drawings', '_rels', "drawing1.xml.rels")
+            rels_dir = os.path.join(extracted_dir, 'xl',
+                                    'drawings', '_rels', "drawing1.xml.rels")
             with open(rels_dir, "r") as fd:
-                contents=fd.read()
+                contents = fd.read()
             with open(rels_dir, "w") as fd:
-                contents=contents.replace(
+                contents = contents.replace(
                     "HONEYDROP_TOKEN_URL", url)
                 fd.write(contents)
-            new_zip_file=f"honeytokens/modified_{self.filename()}"
+            new_zip_file = f"honeytokens/modified_{self.filename()}"
             with zipfile.ZipFile(new_zip_file, 'w') as zipf:
                 for root, _, files in os.walk(extracted_dir):
                     for file in files:
-                        file_path=os.path.join(root, file)
+                        file_path = os.path.join(root, file)
                         zipf.write(file_path, os.path.relpath(
                             file_path, extracted_dir))
             shutil.rmtree(extracted_dir)
             # shutil.rmtree(filepath)
-
 
             # shutil.rmtree(extracted_dir)
         except Exception as e:
@@ -283,15 +317,15 @@ class ExcelToken(Token):
 
     def check_modified_xml(self, file_path):
         print('Checking modified XML content...')
-        old_string='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
-        url=url_from_host_and_tokenid(self.host, self.pk)
-        extracted_dir=f"honeytokens/extracted_{self.filename}"
+        old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+        url = url_from_host_and_tokenid(self.host, self.pk)
+        extracted_dir = f"honeytokens/extracted_{self.filename}"
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(extracted_dir)
 
-        styles_path=os.path.join(extracted_dir, 'xl', 'styles.xml')
+        styles_path = os.path.join(extracted_dir, 'xl', 'styles.xml')
         with open(styles_path, 'r', encoding='utf-8') as file:
-            styles_content=file.read()
+            styles_content = file.read()
             print("the content of the file is: ", styles_content)
             if old_string in styles_content:
                 print('URL not inserted in the XML content.')
@@ -303,10 +337,10 @@ class ExcelToken(Token):
 
 
 class DockerfileToken(Token):
-    token_type: str=Field(default="DockerfileToken", index=True)
+    token_type: str = Field(default="DockerfileToken", index=True)
 
     def write_out(self):
-        dockerfile_payload=self.get_dockerfile_payload()
+        dockerfile_payload = self.get_dockerfile_payload()
         with open(
             f"honeytokens/{self.filename()}", "w"
         ) as output_file:
@@ -316,7 +350,7 @@ class DockerfileToken(Token):
         print(f"Your Dockerfile Token payload: {dockerfile_payload}")
 
     def get_dockerfile_payload(self):
-        payload=f"""
+        payload = f"""
 CMD ["bash", "-c",
     "echo -e 'GET /?id={self.pk} HTTP/1.1\\r\\nHost: {self.host}\\r\\nConnection: close\\r\\n\\r\\n' >/dev/tcp/{self.host}/5000"]
 """
@@ -327,7 +361,7 @@ CMD ["bash", "-c",
 
 
 class WindowsDirectoryToken(Token):
-    token_type: str=Field(default="WindowsDirectoryToken", index=True)
+    token_type: str = Field(default="WindowsDirectoryToken", index=True)
 
     def write_out(self):
         """
@@ -336,8 +370,8 @@ class WindowsDirectoryToken(Token):
         y se hace el request al servidor.
         """
 
-        icon_url=url_from_host_and_tokenid(self.host, self.pk)
-        desktop_ini_content=f"""
+        icon_url = url_from_host_and_tokenid(self.host, self.pk)
+        desktop_ini_content = f"""
         [.ShellClassInfo]
         IconResource={icon_url},0
         """
@@ -349,20 +383,20 @@ class WindowsDirectoryToken(Token):
 
 
 class HTMLToken(Token):
-    token_type: str=Field(default="HTMLToken", index=True)
+    token_type: str = Field(default="HTMLToken", index=True)
     allowed_url: str
     input_html_path: str
 
     def write_out(self):
-        tokenized_html=self.tokenize_html(self.input_html_path)
+        tokenized_html = self.tokenize_html(self.input_html_path)
         with open(f"honeytokens/{self.filename()}", "w") as html_file:
             html_file.write(tokenized_html)
 
     def tokenize_html(self, html_file_path: str) -> str:
         with open(html_file_path, "r") as file:
-            html_content=file.read()
+            html_content = file.read()
 
-        alert_script=f"""
+        alert_script = f"""
 <script>
 if (window.location.hostname !== "{self.allowed_url}") {{
     fetch("{url_from_host_and_tokenid(self.host, self.pk)}");
