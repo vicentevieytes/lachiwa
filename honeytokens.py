@@ -128,7 +128,7 @@ class ExcelToken(Token):
             print(f"Error modifying zip file: {e}")
 
     def filename(self):
-        return f"Excel_{self.description}.xlsx"
+        return f"Excel_{self.description}"
 
     def check_modified_xml(self, file_path):
         print('Checking modified XML content...')
