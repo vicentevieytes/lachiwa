@@ -12,6 +12,7 @@ import os
 from redis_om import HashModel, Field
 from abc import ABC
 
+# 
 class Token(HashModel):
     host: str
     description: str
@@ -32,11 +33,10 @@ class Token(HashModel):
         )
 
     def url(self):
-        return f"{protocol}://{host}/?id={id}"
+        return f"http://{self.host}/?id={self.pk}"
 
     def write_out(self) -> None:
         pass
-
 
 class URLToken(Token):
     token_type: str = Field(default="URLToken", index=True)
