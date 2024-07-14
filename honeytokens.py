@@ -12,11 +12,6 @@ import os
 from redis_om import HashModel, Field
 from abc import ABC
 
-
-def url_from_host_and_tokenid(host, id, protocol="http"):
-    return f"{protocol}://{host}/?id={id}"
-
-
 class Token(HashModel):
     host: str
     description: str
@@ -37,7 +32,7 @@ class Token(HashModel):
         )
 
     def url(self):
-        return url_from_host_and_tokenid(self.host, self.pk)
+        return f"{protocol}://{host}/?id={id}"
 
     def write_out(self) -> None:
         pass
@@ -60,7 +55,7 @@ class URLToken(Token):
             f"URLToken(host={self.host}, description={
                 self.description}, email={self.email}, "
             f"token_type={self.token_type}, timestamp={self.timestamp}, id={
-                self.pk}, url={url_from_host_and_tokenid(self.host, self.pk)}"
+                self.pk}, url={self.url()}"
         )
 
 
@@ -92,14 +87,14 @@ class QRToken(Token):
 # Microsoft Excel file Token, tokenization is achieved by injecting into a "drawing" object.
 # The template used and some of this code are taken from github.com/thinkst/canarytokens/
 class ExcelToken(Token):
-    token_type: str = Field(default="ExcelToken", index=True
+    token_type: str = Field(default="ExcelToken", index=True)
                             
     def write_out(self):
         filepath = f"honeytokens/{self.filename()}"
         template = f"templates/template.xlsx"
         shutil.copy(template, filepath)
-        url = url_from_host_and_tokenid(self.host, self.pk)
-        print(f"URL: {url_from_host_and_tokenid(self.host, self.pk)}")
+        url = self.url()
+        print(f"URL: {self.url()}")
         
         try:
             extracted_dir = f"honeytokens/extracted"
@@ -133,7 +128,7 @@ class ExcelToken(Token):
     def check_modified_xml(self, file_path):
         print('Checking modified XML content...')
         old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
-        url = url_from_host_and_tokenid(self.host, self.pk)
+        url = self.url()
         extracted_dir = f"honeytokens/extracted_{self.filename}"
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(extracted_dir)
@@ -185,7 +180,7 @@ class WindowsDirectoryToken(Token):
         y se hace el request al servidor.
         """
 
-        icon_url = url_from_host_and_tokenid(self.host, self.pk)
+        icon_url = self.url()
         desktop_ini_content = f"""
         [.ShellClassInfo]
         IconResource={icon_url},0
@@ -214,7 +209,7 @@ class HTMLToken(Token):
         alert_script = f"""
 <script>
 if (window.location.hostname !== "{self.allowed_url}") {{
-    fetch("{url_from_host_and_tokenid(self.host, self.pk)}");
+    fetch("{self.url()}");
 }}
 </script>
 """
