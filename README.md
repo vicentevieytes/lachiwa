@@ -21,28 +21,3 @@ docker compose run --rm lachiwa_cli create qrtoken --host localhost:5000 --descr
 ```
 docker compose run --rm lachiwa_cli create htmltoken --host localhost:5000 --description "company website" --email "pitbull@worldwidemail.com"]
 ```
-
-
-## PENDIENTES:
-- **Más tipos de token como PDF o binario**
-- **Alertas por email (o algo asi)**
-- **Dividir lachiwa sv y lachiwa cli en dos directorios con Dockerfiles distintos**
-- **Extender funcionalidad desde la CLI o API (obtener lista de tokens, deshabilitar determinados tokens, obtener lista de alertas)**
-
-## WORKING ON:
-- Tomás está laburando en la branch Excel para armar el **ExcelToken**.
-- Lautaro está laburando en el **informe** y **HTMLToken**.
-- Vicente está laburando con el **backend** y la configuración del **docker-compose**.
-- Germán es un **tipazo**. (ya pusheo y espera PR del branch  **DockerFileToken**)
-
-## LOG
-- El servidor funciona y genera alertas en alerts/alert_log cuando los tokens son activados.
-- Escribimos una versión inicila del token Excel
-- Hicimos un docker-compose.yml para levantar a la vez la CLI y redis
-- Hicimos un Dockerfile para la CLI 
-- Escribimos las primeras clases del modelo, Token y subclases URLToken y QRToken.
-- Escribimos lo inicial de la CLI, se pueden generar URLs y QRs. 
-- Estamos programando en Python pq trate de usar Node y casi me explota una arteria del cerebro.
-- Para la base de datos estamos considerando usar redis. Es un key value storage en el que es muy facil leer y escribir.
-- Con la libreria trogon ahora la CLI es una TUI, y se puede correr desde docker!
-
