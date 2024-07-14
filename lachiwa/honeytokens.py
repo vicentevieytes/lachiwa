@@ -8,6 +8,7 @@ from typing import Optional
 import shutil
 import zipfile
 import os
+import tempfile
 
 from redis_om import HashModel, Field
 from abc import ABC
@@ -16,7 +17,6 @@ from abc import ABC
 class Token(HashModel):
     host: str
     description: str
-    email: str
     timestamp: Optional[datetime] = Field(index=True)
 
     def __init__(self, **data):
@@ -25,18 +25,14 @@ class Token(HashModel):
         super().__init__(**data)
 
     def __str__(self):
-        return (
-            f"Token(host={self.host}, description={
-                self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={
-                self.timestamp}, id={self.pk})"
-        )
+        return f"Token(host={self.host}, description={self.description}, token_type={self.token_type}, timestamp={self.timestamp}, id={self.pk})"
 
     def url(self):
         return f"http://{self.host}/?id={self.pk}"
 
     def write_out(self) -> None:
         pass
+
 
 class URLToken(Token):
     token_type: str = Field(default="URLToken", index=True)
@@ -49,14 +45,6 @@ class URLToken(Token):
 
     def filename(self):
         return f"URL_{self.description}.txt"
-
-    def __str__(self):
-        return (
-            f"URLToken(host={self.host}, description={
-                self.description}, email={self.email}, "
-            f"token_type={self.token_type}, timestamp={self.timestamp}, id={
-                self.pk}, url={self.url()}"
-        )
 
 
 class QRToken(Token):
@@ -88,62 +76,48 @@ class QRToken(Token):
 # The template used and some of this code are taken from github.com/thinkst/canarytokens/
 class ExcelToken(Token):
     token_type: str = Field(default="ExcelToken", index=True)
-                            
-    def write_out(self):
-        filepath = f"honeytokens/{self.filename()}"
-        template = f"templates/template.xlsx"
-        shutil.copy(template, filepath)
-        url = self.url()
-        print(f"URL: {self.url()}")
-        
-        try:
-            extracted_dir = f"honeytokens/extracted"
-            with zipfile.ZipFile(filepath, 'r') as zip_ref:
-                zip_ref.extractall(extracted_dir)
-            rels_dir = os.path.join(extracted_dir, 'xl',
-                                    'drawings', '_rels', "drawing1.xml.rels")
-            with open(rels_dir, "r") as fd:
-                contents = fd.read()
-            with open(rels_dir, "w") as fd:
-                contents = contents.replace(
-                    "HONEYDROP_TOKEN_URL", url)
-                fd.write(contents)
-            new_zip_file = f"honeytokens/modified_{self.filename()}"
-            with zipfile.ZipFile(new_zip_file, 'w') as zipf:
-                for root, _, files in os.walk(extracted_dir):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        zipf.write(file_path, os.path.relpath(
-                            file_path, extracted_dir))
-            shutil.rmtree(extracted_dir)
-            # shutil.rmtree(filepath)
 
-            # shutil.rmtree(extracted_dir)
-        except Exception as e:
-            print(f"Error modifying zip file: {e}")
+    def write_out(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            template = "templates/template.xlsx"
+            temp_filepath = os.path.join(temp_dir, self.filename())
+            shutil.copy(template, temp_filepath)
+            url = self.url()
+            print(f"URL: {self.url()}")
+
+            try:
+                extracted_dir = self.extract_zip(temp_filepath, temp_dir)
+                self.modify_xml(extracted_dir, url)
+                final_filepath = self.create_final_zip(extracted_dir)
+                self.check_modified_xml(final_filepath)
+            except Exception as e:
+                print(f"Error modifying zip file: {e}")
 
     def filename(self):
-        return f"Excel_{self.description}"
+        return f"Excel_{self.description}.xlsx"
 
-    def check_modified_xml(self, file_path):
-        print('Checking modified XML content...')
-        old_string = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
-        url = self.url()
-        extracted_dir = f"honeytokens/extracted_{self.filename}"
-        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+    def extract_zip(self, zip_path, extract_to):
+        extracted_dir = os.path.join(extract_to, "extracted")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extracted_dir)
+        return extracted_dir
 
-        styles_path = os.path.join(extracted_dir, 'xl', 'styles.xml')
-        with open(styles_path, 'r', encoding='utf-8') as file:
-            styles_content = file.read()
-            print("the content of the file is: ", styles_content)
-            if old_string in styles_content:
-                print('URL not inserted in the XML content.')
-            elif url in styles_content:
-                print('URL inserted in the XML content.')
-            else:
-                print('URL not found in the XML content.')
-            print('Modified XML content checked successfully.')
+    def modify_xml(self, extracted_dir, url):
+        rels_dir = os.path.join(extracted_dir, 'xl', 'drawings', '_rels', "drawing1.xml.rels")
+        with open(rels_dir, "r") as fd:
+            contents = fd.read()
+        with open(rels_dir, "w") as fd:
+            contents = contents.replace("HONEYDROP_TOKEN_URL", url)
+            fd.write(contents)
+
+    def create_final_zip(self, extracted_dir):
+        final_filepath = f"honeytokens/{self.filename()}"
+        with zipfile.ZipFile(final_filepath, 'w') as zipf:
+            for root, _, files in os.walk(extracted_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, extracted_dir))
+        return final_filepath
 
 
 class DockerfileToken(Token):

@@ -19,6 +19,4 @@ def log_alert(token: Token, alert: HoneytokenAlert):
         alert_log.write(f"Alert_timestamp: {alert.timestamp.isoformat()} Token_type: {token.token_type} Description: {token.description} Creation_timestamp: {token.timestamp.isoformat()} Token_id: {token.pk} Remote_ip: {alert.remote_ip}\n")
 
 
-#TODO: def send_alert_email(self):
-
 

@@ -9,8 +9,6 @@ def common_options(f):
                      help='The host for the token.')(f)
     f = click.option('--description', required=True,
                      help='The description for the token.')(f)
-    f = click.option('--email', required=True,
-                     help='The email associated with the token.')(f)
     return f
 
 
@@ -22,11 +20,10 @@ def create():
 
 @create.command()
 @common_options
-def urltoken(host, description, email):
+def urltoken(host, description):
     token = URLToken(
         host = host,
         description = description,
-        email = email
     )
     token.write_out()
     store_token(token)
@@ -35,11 +32,10 @@ def urltoken(host, description, email):
 
 @create.command()
 @common_options
-def qrtoken(host, description, email):
+def qrtoken(host, description):
     token = QRToken(
         host = host,
         description = description,
-        email = email
     )
     token.write_out()
     store_token(token)
@@ -47,12 +43,11 @@ def qrtoken(host, description, email):
 
 @create.command()
 @common_options
-def exceltoken(host, description, email):
+def exceltoken(host, description):
 
     token = ExcelToken(
         host = host,
         description = description,
-        email = email
     )
     token.write_out()
     store_token(token)
@@ -61,11 +56,10 @@ def exceltoken(host, description, email):
 
 @create.command()
 @common_options
-def dockertoken(host, description, email):
+def dockertoken(host, description):
     token = DockerfileToken(
         host = host,
         description = description,
-        email = email
     )
     token.write_out()
     store_token(token)
@@ -76,11 +70,10 @@ def dockertoken(host, description, email):
 @common_options
 @click.option("--file", required=True, help="file path for input html file")
 @click.option("--allowed", required=True, help="The domain where your website should be hosted at")
-def htmltoken(host, description, email, file, allowed):
+def htmltoken(host, description, file, allowed):
     token = HTMLToken(
         host = host,
         description = description,
-        email = email,
         allowed_url = allowed,
         input_html_path = file)
     token.write_out()
@@ -90,11 +83,10 @@ def htmltoken(host, description, email, file, allowed):
 
 @create.command()
 @common_options
-def windowstoken(host, description, email):
+def windowstoken(host, description):
     token = WindowsDirectoryToken(
         host = host,
         description = description,
-        email = email
     ) 
     token.write_out()
     store_token(token)
