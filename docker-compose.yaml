@@ -6,11 +6,12 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    #command: redis-server --appendonly yes  # Keep Redis running continuously
 
   lachiwa_cli:
-    build: .
-    image: lachiwa
+    build: 
+      context: .
+      dockerfile: lachiwa/Dockerfile
+    image: lachiwa_cli
     container_name: lachiwa_cli
     depends_on:
       - redis
@@ -22,8 +23,10 @@ services:
     entrypoint: ["python", "/usr/src/app/lachiwa_cli.py"]
     
   lachiwa_sv:
-    build: .
-    image: lachiwa
+    build: 
+      context: .
+      dockerfile: lachiwa/Dockerfile
+    image: lachiwa_sv
     container_name: lachiwa_sv
     depends_on:
       - redis
@@ -34,7 +37,7 @@ services:
       - FLASK_ENV=development
       - REDIS_OM_URL=redis://redis:6379
     ports:
-      - "8351:8351"
+      - "5000:5000"
     command: flask run --host=0.0.0.0 --debug
 
 
