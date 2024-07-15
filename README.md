@@ -1,14 +1,11 @@
 # lachiwa
 Lachiwa is a CLI tool for generating honeytokens, similar to canarytokens.
-![image](https://github.com/vicentevieytes/lachiwa/assets/73846744/48ced5f0-e025-4a0e-9482-da2fc104279f)
 
 ## BUILD AND RUN
-Los dos principales métodos para ejecutar la aplicación son mediante el archivo docker-compose provisto,
-o con python en un ambiente virtual.
 
 ## Docker Compose
 
-Ejecutar estos comandos en la raiz del repositorio:
+Ejecutar estos comandos en la raiz del repositorio, los tokens generados se escribiran en la carpeta honeytokens/ de este repositorio:
 
 Construir las imagenes docker, iniciar el y servidor redis:
 ```docker-compose up --build -d```
