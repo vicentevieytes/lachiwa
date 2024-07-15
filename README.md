@@ -1,7 +1,26 @@
 # lachiwa
-Lachiwa is a CLI tool for generating honeytokens, similar to canarytokens.
+Lachiwa es una implementación de Honeytokens en Python.
 
-## BUILD AND RUN
+## Características
+
+- Creación de diferentes tipos de tokens (URLToken, QRToken, etc.).
+- Almacenamiento y gestión de tokens utilizando Redis OM.
+- Registro y consulta de alertas de activación de honeytokens.
+- Salida de archivos generados por el CLI a un sistema de archivos host o almacenamiento alternativo.
+
+## Requisitos
+
+- Docker
+- Redis (opcional, si decides utilizar Redis OM para almacenamiento)
+
+## Instalación
+
+1. Clona el repositorio:
+
+    ```bash
+    git clone https://github.com/vicentevieytes/lachiwa.git
+    cd lachiwa
+    ```
 
 ## Docker Compose
 
@@ -34,11 +53,11 @@ Commands:
   qrtoken
   urltoken
 ```
-Ejemplos:
+# Ejemplos:
 ```
-docker compose run --rm lachiwa_cli create urltoken --host localhost:5000 --description "url for email to Bob"
+docker compose run --rm lachiwa_cli create urltoken --host lachiwa-sv:5000 --description "url for email to Bob"
 
-docker compose run --rm lachiwa_cli create qrtoken --host localhost:5000 --description "qr for public wifi"
+docker compose run --rm lachiwa_cli create qrtoken --host lachiwa-sv:5000 --description "qr for public wifi"
 
-docker compose run --rm lachiwa_cli create htmltoken --host localhost:5000 --description "company website"
+docker compose run --rm lachiwa_cli create htmltoken --host lachiwa-sv:5000 --description "company website"
 ```
