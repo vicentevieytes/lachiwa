@@ -81,16 +81,16 @@ def htmltoken(host, description, file, allowed):
     click.echo(f"Your HTMLToken file: {token.filename()}")
 
 
-@create.command()
-@common_options
-def windowstoken(host, description):
-    token = WindowsDirectoryToken(
-        host = host,
-        description = description,
-    ) 
-    token.write_out()
-    store_token(token)
-    click.echo(f"Your WindowsToken file: {token.filename()}")
+#@create.command()
+#@common_options
+#def windowstoken(host, description):
+#    token = WindowsDirectoryToken(
+#        host = host,
+#       description = description,
+#    ) 
+#   token.write_out()
+#    store_token(token)
+#    click.echo(f"Your WindowsToken file: {token.filename()}")
 
 
 @click.group()
